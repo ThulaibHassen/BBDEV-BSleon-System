@@ -1,0 +1,14 @@
+node_modules
+.next
+.env
+.env.*
+!.env.example
+npm-debug.log
+.git
+Dockerfile
+docker-compose.yml
+*.md
+!README.md
+# local uploads (disk storage driver) never belong in an image
+.storage
+scripts/dist

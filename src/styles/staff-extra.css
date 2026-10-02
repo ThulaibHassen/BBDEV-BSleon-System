@@ -1,0 +1,413 @@
+/* Additions to the original staff stylesheet (staff.css stays verbatim).
+
+   1. Sidebar items are now real links (<a>) instead of buttons, so they
+      must not pick up the browser's link underline or colour.
+   2. The collapsible sidebar: on desktop the sidebar can shrink to an
+      icon-only rail. Open is the default; the choice is remembered per
+      device. On phones (≤860px) the original off-canvas drawer is unchanged. */
+
+a.nav-item,
+a.nav-item:hover,
+a.nav-item:visited,
+.side-foot a {
+  text-decoration: none;
+}
+a.nav-item:not(.active) {
+  color: var(--sidebar-txt);
+}
+a.nav-item:not(.active):hover {
+  color: #fff;
+}
+
+/* the desktop collapse button, shown in the topbar beside the title */
+.side-toggle {
+  display: flex;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: color var(--t-fast), border-color var(--t-fast);
+}
+.side-toggle:hover {
+  color: var(--brand);
+  border-color: var(--brand);
+}
+.side-toggle svg {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.25s var(--ease);
+}
+.app.rail .side-toggle svg {
+  transform: scaleX(-1);
+}
+
+@media (min-width: 861px) {
+  .sidebar {
+    transition: width 0.25s var(--ease);
+    overflow: hidden;
+  }
+  .main {
+    transition: margin-left 0.25s var(--ease);
+  }
+
+  .app.rail .sidebar {
+    width: 76px;
+  }
+  .app.rail .main {
+    margin-left: 76px;
+  }
+  .app.rail .logo-wrap {
+    padding: 18px 8px 16px;
+  }
+  /* just the lightbulb mark: the lockup is cropped to its left edge */
+  .app.rail .side-logo {
+    height: 40px;
+    width: 30px;
+    max-width: none;
+    object-fit: cover;
+    object-position: left center;
+  }
+  .app.rail .nav {
+    padding: 14px 10px;
+    scrollbar-width: none;
+  }
+  .app.rail .nav::-webkit-scrollbar {
+    display: none;
+  }
+  /* group headings go; every item shows, whatever its group's fold state */
+  .app.rail .nav-label {
+    display: none;
+  }
+  .app.rail .nav-group + .nav-group {
+    border-top: 1px solid var(--sidebar-line);
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+  .app.rail .nav-group.collapsed .nav-item {
+    display: flex !important;
+  }
+  .app.rail .nav-item {
+    justify-content: center;
+    padding: 12px 0;
+  }
+  .app.rail .nav-item .nl {
+    display: none;
+  }
+  /* the count becomes a small number pinned to the icon's corner */
+  .app.rail .nav-item .badge {
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    margin: 0;
+    padding: 0 5px;
+    font-size: 10px;
+    line-height: 16px;
+  }
+  .app.rail .side-foot {
+    flex-direction: column;
+    padding: 12px 8px;
+    gap: 8px;
+  }
+  .app.rail .side-foot .who {
+    display: none;
+  }
+  .app.rail .side-foot .out {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 860px) {
+  .side-toggle {
+    display: none;
+  }
+}
+
+/* Papers: every question and option takes text, a picture, or both —
+   the small T / picture icon pair beside each field. */
+.ti-bar {
+  display: flex;
+  gap: 4px;
+  flex: none;
+}
+.ti-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: 700 13px/1 Georgia, 'Times New Roman', serif;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+/* the picture button is a <label> around the file input; the original form
+   rules (.mq-f label, .qz-f label, .fld label) would make it a block */
+.ti-bar label.ti-btn {
+  display: inline-flex;
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.ti-bar label.ti-btn.on {
+  color: var(--ink);
+}
+.ti-bar label.ti-btn:hover {
+  color: var(--brand);
+}
+.ti-btn .ic {
+  width: 16px;
+  height: 16px;
+  vertical-align: 0;
+}
+.ti-btn:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+.ti-btn.on {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+.ti-btn.busy {
+  opacity: 0.5;
+  cursor: progress;
+}
+.ti-under {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+.ti-thumb {
+  position: relative;
+  display: inline-block;
+  margin-top: 8px;
+}
+.ti-thumb img {
+  display: block;
+  max-width: 100%;
+  max-height: 160px;
+  object-fit: contain;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.ti-thumb.sm img {
+  max-height: 90px;
+}
+.ti-thumb button {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+.ti-thumb button .ic {
+  width: 12px;
+  height: 12px;
+}
+.ti-oimg {
+  max-height: 48px;
+  max-width: 120px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+/* class screen: question / option pictures, read from the back row */
+.qh-img {
+  display: block;
+  max-width: 100%;
+  max-height: 34vh;
+  object-fit: contain;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.qh-ot {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+.qh-ot img {
+  display: block;
+  max-width: 100%;
+  max-height: 140px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* The Modal's close (×) reuses .pn-close, which is absolutely positioned;
+   without this it anchored to the full-screen overlay, not the dialog. */
+.modal {
+  position: relative;
+}
+.modal .modal-h .pn-close {
+  position: static;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.modal .modal-h {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Toasts must stay visible over the full-screen quiz host (.qh-wrap, z 300). */
+.toast {
+  z-index: 450;
+}
+
+/* Library: a checkbox in front of every document, the bar for what is
+   ticked, and the picture strip of "Images → one PDF". */
+.lib-ck {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--brand);
+  vertical-align: middle;
+}
+.lib-tbl th.ckc,
+.lib-tbl td.ckc {
+  width: 1%;
+  padding-right: 4px;
+  cursor: default;
+}
+.lib-tbl tbody tr.picked {
+  background: var(--surface-2);
+}
+.lib-bulk {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 10px 8px 14px;
+  margin-bottom: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-2);
+  font-size: 12.5px;
+}
+.lib-bulk .sp {
+  flex: 1;
+}
+.lib-bulk .btn-ghost,
+.lib-bulk .btn-danger {
+  padding: 7px 12px;
+}
+.lib-bulk .filter {
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+.lib-bulk button:disabled,
+.lib-bulk select:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.lib-mode {
+  margin-bottom: 14px;
+}
+.lib-pics {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.lib-pic {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+  overflow: hidden;
+  cursor: grab;
+  transition: border-color 0.15s, opacity 0.15s;
+}
+.lib-pic.dragging {
+  opacity: 0.45;
+}
+.lib-pic.over {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 2px var(--brand);
+}
+.lib-pic img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: contain;
+  background: #fff;
+  pointer-events: none;
+}
+.lib-pic .n {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: var(--brand);
+  color: var(--on-accent, #fff);
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.lib-pic .ctl {
+  display: flex;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+.lib-pic .ctl button {
+  flex: 1;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  line-height: 1;
+  color: var(--muted);
+}
+.lib-pic .ctl button + button {
+  border-left: 1px solid var(--line2, var(--line));
+}
+.lib-pic .ctl button:hover:not(:disabled) {
+  color: var(--brand);
+  background: var(--surface-2);
+}
+.lib-pic .ctl button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.lib-pic .ctl .ic {
+  width: 13px;
+  height: 13px;
+}
+@media (max-width: 560px) {
+  .lib-pics {
+    grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  }
+  .lib-bulk .sp {
+    flex-basis: 100%;
+    height: 0;
+  }
+}

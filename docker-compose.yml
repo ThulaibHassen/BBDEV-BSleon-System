@@ -1,0 +1,101 @@
+# BS With Leon — local infrastructure.
+#
+#   docker compose up -d          start Postgres, Redis and the object store
+#   docker compose down           stop (data is kept in the named volumes)
+#
+# Three separate stores, the same split as production on Railway:
+#   postgres  -> user data (students, staff, fees, attendance, quiz results …)
+#   minio     -> bucket "bswl-documents"  PDFs: past papers, marking schemes, tutes
+#             -> bucket "bswl-media"      images: MCQ pictures, logos, avatars
+#   redis     -> cache + rate limits + live-quiz pub/sub (disposable)
+#
+# The app itself runs on the host with `npm run dev`. To run the production
+# image locally as well:  docker compose --profile app up --build
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bswl
+      POSTGRES_PASSWORD: bswl_local_dev
+      POSTGRES_DB: bswl
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bswl -d bswl"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "no", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: bswl_minio
+      MINIO_ROOT_PASSWORD: bswl_minio_local_dev
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # web console
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # One-shot: creates the two buckets, both PRIVATE. Nothing in them is ever
+  # served straight from the bucket; the app streams every file after an auth check.
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 bswl_minio bswl_minio_local_dev &&
+      mc mb --ignore-existing local/bswl-documents &&
+      mc mb --ignore-existing local/bswl-media &&
+      mc anonymous set none local/bswl-documents &&
+      mc anonymous set none local/bswl-media &&
+      echo buckets ready
+      "
+    restart: "no"
+
+  app:
+    profiles: ["app"]
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://bswl:bswl_local_dev@postgres:5432/bswl
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:
+  miniodata:

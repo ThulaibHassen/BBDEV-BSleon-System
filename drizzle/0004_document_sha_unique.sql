@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "documents_sha256_uq" ON "documents" USING btree ("sha256");

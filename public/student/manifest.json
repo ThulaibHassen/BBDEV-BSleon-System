@@ -1,0 +1,30 @@
+{
+  "id": "/student",
+  "name": "BSWL Student",
+  "short_name": "BSWL Student",
+  "description": "Know what to study next, and why. A/L Business Studies with Leon Fambeck.",
+  "start_url": "/student",
+  "scope": "/student",
+  "display": "standalone",
+  "background_color": "#0d0d0d",
+  "theme_color": "#0d0d0d",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

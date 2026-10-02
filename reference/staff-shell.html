@@ -1,0 +1,662 @@
+</head>
+<body>
+<div class="statusfill" aria-hidden="true"></div>
+
+<!-- ══════════ LOGIN (two-step, user list is data-driven from CFG.users) ══════════ -->
+<div id="login">
+  <div class="login-bg"></div>
+  <div class="login-card">
+    <!-- LOGO SLOT A: replace this div with <img class="login-logo" src="..."> per client -->
+    <div id="loginBrand" style="text-align:center"></div>
+    <div id="loginStep1">
+      <div class="login-h"><h2 id="loginTitle"></h2><p>Choose your account to sign in</p></div>
+      <div class="login-lbl">Team</div>
+      <div class="users" id="loginUsers"></div>
+      <button class="btn-ghost" style="width:100%;justify-content:center;margin-top:10px" onclick="pickEmailLogin()">Not listed? Sign in with your email</button>
+    </div>
+    <div id="loginStep2" style="display:none">
+      <div class="login-h"><div class="uav" id="lgAv" style="width:54px;height:54px;border-radius:15px;font-size:21px;margin:0 auto 12px"></div><h2 id="lgName"></h2><p id="lgRole"></p></div>
+      <div class="fld" id="lgEmailFld" style="display:none"><label for="lgEmail">Email</label><input id="lgEmail" type="email" autocomplete="username" placeholder="you@example.com" onkeydown="if(event.key==='Enter')document.getElementById('lgPw').focus()"></div>
+      <div class="fld"><label for="lgPw">Password</label><input id="lgPw" type="password" placeholder="Enter your password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="login-err" id="lgErr"></div>
+      <button class="btn-primary" style="width:100%;justify-content:center;padding:12px;font-size:13.5px" onclick="doLogin()">Sign In</button>
+      <button class="btn-ghost" style="width:100%;justify-content:center;margin-top:8px;border:none;background:none;box-shadow:none" onclick="backLogin()">&larr; Back</button>
+    </div>
+    <div class="login-foot" id="loginFoot"></div>
+  </div>
+</div>
+
+<!-- ══════════ APP SHELL ══════════ -->
+<div class="app hide" id="app">
+  <div class="sb-overlay" id="sbOverlay" onclick="closeSidebar()"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="logo-wrap">
+      <!-- LOGO SLOT B: replace with <img class="side-logo" src="..."> per client -->
+      <div id="sideBrand"></div>
+    </div>
+    <nav class="nav" id="sideNav">
+      <div class="nav-group" data-group="overview">
+        <button class="nav-label" onclick="toggleGroup(this)">Overview<span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg></span></button>
+        <button class="nav-item active" data-pg="dashboard" data-role="all"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Dashboard</button>
+        <button class="nav-item" data-pg="reports" data-role="manager" data-module="reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>Reports</button>
+      </div>
+      <div class="nav-group" data-group="work">
+        <button class="nav-label" onclick="toggleGroup(this)">Daily<span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg></span></button>
+        <button class="nav-item" data-pg="records" data-role="all" data-module="records"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Leads<span class="badge" id="nbRecords"></span></button>
+        <!-- Pipeline: the kanban board. Built, wired and module-enabled, but it had
+             no nav item, so it was unreachable. Same class as the hidden CC pages. -->
+        <button class="nav-item" data-pg="customers" data-role="all" data-module="customers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>Customers</button>
+        <button class="nav-item" data-pg="quotes" data-role="all" data-module="quotes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>Quotes</button>
+        <button class="nav-item" data-pg="inventory" data-role="all" data-module="inventory"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>Inventory<span class="badge" id="nbInventory"></span></button>
+        <button class="nav-item" data-pg="classes" data-role="manager"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1.1 2.7 3 6 3s6-1.9 6-3v-5"/></svg>Class<span class="badge" id="nbRec"></span></button>
+        <button class="nav-item" data-pg="messages" data-role="manager"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Messages</button>
+        <button class="nav-item" data-pg="quizzes" data-role="manager"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>Papers</button>
+        <button class="nav-item" data-pg="app" data-role="manager"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>Student app</button>
+        <button class="nav-item" data-pg="tasks" data-role="all" data-module="tasks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Task Book<span class="badge" id="nbTasks"></span></button>
+      </div>
+      <div class="nav-group" data-group="money">
+        <button class="nav-label" onclick="toggleGroup(this)">Money<span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg></span></button>
+        <button class="nav-item" data-pg="recurring" data-role="manager" data-module="recurring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Recurring</button>
+        <!-- Finance: same story, built and wired with no way to reach it. -->
+        <button class="nav-item" data-pg="finance" data-role="manager" data-module="finance"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Invoices</button>
+        <button class="nav-item" data-pg="forecast" data-role="manager" data-module="forecast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>Forecast</button>
+      </div>
+      <div class="nav-group" data-group="manage">
+        <button class="nav-label" onclick="toggleGroup(this)">Manage<span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg></span></button>
+        <button class="nav-item" data-pg="team" data-role="manager" data-module="team"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>Team</button>
+        <button class="nav-item" data-pg="activity" data-role="manager" data-module="activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10"/><polyline points="12 6 12 12 16 14"/></svg>Activity</button>
+        <button class="nav-item" data-pg="settings" data-role="owner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</button>
+      </div>
+    </nav>
+    <div class="side-foot">
+      <div class="av" id="meAv"></div>
+      <div style="min-width:0"><div class="nm" id="meName"></div><div class="rl" id="meRole"></div></div>
+      <button class="out" title="Sign out" onclick="signOut()"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamb" onclick="toggleSidebar()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+        <div style="min-width:0"><div class="pt" id="pgTitle">Dashboard</div><div class="ps" id="pgSub"></div></div>
+      </div>
+      <div class="tr">
+        <div class="tb-clock" id="sbClock"></div>
+        <div class="search-wrap"><input class="search" id="searchInput" placeholder="Search…" oninput="doSearch(this.value)" onblur="setTimeout(closeSearch,180)" aria-label="Search"><div class="search-results" id="searchResults"></div></div>
+        <button class="icon-btn" id="themeBtn" title="Toggle theme" aria-label="Toggle theme" onclick="toggleTheme()"></button>
+        <button class="btn-primary" id="primaryAction" onclick="openRecordModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span id="primaryActionLbl">New Lead</span></button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ══ DASHBOARD ══ -->
+      <div class="page active" id="page-dashboard">
+        <div id="greet" style="margin-bottom:20px"></div>
+        <div class="hero-money" id="heroMoney"></div>
+        <div class="kpis" id="dashKpis"></div>
+        <div class="card"><div class="card-h"><h3 id="chartTitle">Won revenue, last 6 months</h3><span class="hint" id="chartHint"></span></div><div class="card-b" id="dashChart" ></div></div>
+        <div class="grid2">
+          <div class="card"><div class="card-h"><h3 style="display:flex;align-items:center;gap:8px"><svg class="ic" style="color:var(--brand);width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Needs attention today</h3><span class="hint">Students who owe, then follow-ups</span></div><div class="card-b" id="actionQueue"></div></div>
+          <div class="card"><div class="card-h"><h3>Tasks</h3><button class="btn-ghost" onclick="openTaskModal()" style="padding:6px 12px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add</button></div><div class="card-b" id="dashTasks"></div></div>
+        </div>
+      </div>
+
+      <!-- ══ PIPELINE (kanban board module) ══ -->
+      <!-- ══ RECORDS (table + filters + search + detail panel) ══ -->
+      <div class="page" id="page-records">
+        <div class="toolbar">
+          <!-- Table and board are the SAME 47 records read two ways, so they are
+               one page with a switch, not two menu items. -->
+          <div class="seg-toggle" id="enqViewSeg">
+            <button class="segt active" data-ev="table" onclick="ENQ.view('table')">Table</button>
+            <button class="segt" data-ev="board" onclick="ENQ.view('board')">Board</button>
+          </div>
+          <input class="filter" id="enqSearch" style="min-width:150px" placeholder="Search a name or number" oninput="ENQ.search(this.value)">
+          <select class="filter" id="recStage" onchange="renderRecords()"><option value="all">All stages</option></select>
+          <select class="filter" id="recOwner" onchange="setOwnerFilter(this.value)"><option value="all">Whole team</option></select>
+          <div class="sp"></div>
+          <button class="btn-ghost imp-btn" onclick="openImport('records')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Import</button>
+          <button class="btn-ghost" onclick="exportRecords()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export Excel</button>
+        </div>
+        <div class="hint" id="enqCount"></div>
+        <div id="enqTable"><div class="card"><table class="tbl"><thead><tr><th data-fl="name">Name</th><th data-fl="stage">Stage</th><th data-fl="owner">Owner</th><th data-fl="followUp">Follow-up</th><th class="tnum" data-fl="value">Value</th></tr></thead><tbody id="recBody"></tbody></table><div id="recEmpty"></div></div></div>
+        <div id="enqBoard" style="display:none">
+          <div class="hint" style="margin-bottom:10px">Drag a card to move a student through the stages.</div>
+          <div class="board" id="board"></div>
+        </div>
+      </div>
+
+      <!-- ══ TASKS ══ -->
+      <div class="page" id="page-tasks">
+        <div class="toolbar"><span class="hint" style="font-size:12.5px;color:var(--muted)">Assign and track work across the team</span><div class="sp"></div><button class="btn-primary" onclick="openTaskModal()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Task</button></div>
+        <div class="card"><div class="card-b" id="taskList" ></div></div>
+      </div>
+
+      <!-- ══ REPORTS (month-over-month analytics + trends, always-on) ══ -->
+      <div class="page" id="page-reports">
+        <div class="toolbar">
+          <div class="mo-switch"><button id="rpPrev" aria-label="Previous month" onclick="rpShift(-1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button><span class="mo-lbl" id="rpLbl"></span><button id="rpNext" aria-label="Next month" onclick="rpShift(1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></button></div>
+          <div class="sp"></div>
+          <button class="btn-ghost" onclick="printReport()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print / PDF</button>
+          <button class="btn-ghost" onclick="exportReport()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export</button>
+        </div>
+        <div class="stat-kpis" id="rpKpis"></div>
+        <div class="card" id="rpCmpCard"><div class="card-h" style="flex-wrap:wrap;gap:10px"><h3 id="rpCmpHint">Compare months</h3><div class="rp-cmp-ctl"><span class="rp-cmp-vs">compare with</span><select id="rpCmpSel" class="filter" onchange="rpSetCmp(this.value)"></select><button class="rp-quick" id="rpqPrev" onclick="rpQuick('prev')">Previous month</button><button class="rp-quick" id="rpqYear" onclick="rpQuick('year')">Same month last year</button></div></div><div class="card-b"><div class="cmp-grid" id="rpCmp"></div></div></div>
+        <div class="card"><div class="card-h"><h3>Enrolment trend</h3><span class="hint">Fees collected, last 6 months</span></div><div class="card-b" id="rpTrend" ></div></div>
+        <div class="grid2" style="margin-bottom:20px">
+          <div class="card"><div class="card-h"><h3>Who enrolled them</h3><span class="hint">By team member, this month</span></div><div class="card-b" id="rpByOwner"></div></div>
+          <div class="card"><div class="card-h"><h3>Top enrolments</h3><span class="hint" id="rpTopHint"></span></div><div class="card-b" id="rpTop"></div></div>
+        </div>
+        <div class="card"><div class="card-h"><h3>What the numbers say</h3></div><div class="card-b" id="rpInsights" style="padding:14px 20px;font-size:13.5px;line-height:1.7"></div></div>
+      </div>
+
+      <!-- ══ CUSTOMERS (post-sale contacts, LTV + 30/60/90 cadence, always-on) ══ -->
+      <div class="page" id="page-customers">
+        <div class="stat-kpis" id="cusKpis"></div>
+        <div class="toolbar">
+          <div class="seg-toggle" id="cusStatusSeg" style="display:none"><button class="segt active" data-cs="active" onclick="cusStatus('active')">Active</button><button class="segt" data-cs="alumni" onclick="cusStatus('alumni')">Alumni</button></div>
+          <select class="filter" id="cusCohort" style="display:none" onchange="renderCustomers()"></select>
+          <!-- Leon: "Add additional dropdowns to filter students by the class they
+               attend. Mode: Online / Physical. Class: Theory / Revision / Both.
+               Institute: show this dropdown only when Physical is selected." -->
+          <select class="filter" id="cusMode" onchange="renderCustomers()" aria-label="Mode">
+            <option value="all">Online and physical</option>
+            <option value="online">Online</option>
+            <option value="physical">Physical</option></select>
+          <!-- Leon's team: rename to Theory Only / Revision Only / Theory and
+               Revision, allow MORE THAN ONE at a time, and drop "Every class".
+               A dropdown cannot hold two answers, so these are toggles. Nothing
+               pressed means no narrowing, which is what "Every class" meant,
+               so the option is not removed, it is the resting state. -->
+          <div class="chips" id="cusProg" role="group" aria-label="Class"></div>
+          <select class="filter" id="cusInst" onchange="renderCustomers()" aria-label="Institute" style="display:none">
+            <option value="all">Every institute</option></select>
+          <div class="sp"></div>
+          <button class="btn-primary" onclick="ENROL.open(null)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add student</button>
+          <button class="btn-ghost imp-btn" onclick="openImport('customers')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Import</button>
+          <button class="btn-ghost" onclick="exportCustomers()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export</button>
+        </div>
+        <div class="card"><table class="tbl"><thead><tr><th id="cusThName">Student</th><th>Referral ask</th><th>Next action</th><th>Mode</th><th class="tnum">Fees paid</th><th></th></tr></thead><tbody id="cusBody"></tbody></table><div id="cusEmpty"></div></div>
+      </div>
+
+      <!-- ══ QUOTES (module: quote generator + branded PDF) ══ -->
+      <div class="page" id="page-quotes">
+        <div class="toolbar"><span class="hint" id="quoIntro" style="font-size:12.5px;color:var(--muted)">Open a record to build its quote, then generate a branded PDF</span><div class="sp"></div><button class="btn-ghost" onclick="exportQuotes()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export</button></div>
+        <div class="card"><table class="tbl"><thead><tr><th>Customer</th><th>Items</th><th>Stage</th><th class="tnum">Quote total</th><th></th></tr></thead><tbody id="quoBody"></tbody></table><div id="quoEmpty"></div></div>
+      </div>
+
+      <!-- ══ INVENTORY (module: smart stock, product businesses) ══ -->
+      <div class="page" id="page-inventory">
+        <div class="inv-alerts" id="invAlerts"></div>
+        <div class="toolbar">
+          <input class="search" id="invSearch" placeholder="Search products or codes…" style="width:230px" oninput="INV.setQ(this.value)" aria-label="Search products">
+          <div class="sp"></div>
+          <button class="btn-ghost" id="invImportBtn" onclick="openImport('products')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Import</button>
+          <button class="btn-ghost" onclick="exportInventory()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export</button>
+          <button class="btn-primary" onclick="openProductModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add product</button>
+        </div>
+        <div class="inv-grid" id="invGrid"></div>
+        <div id="invEmpty"></div>
+      </div>
+
+      <!-- ══ FINANCE (invoices, collections, aging, always-on) ══ -->
+      <div class="page" id="page-finance">
+        <div class="stat-kpis" id="finKpis"></div>
+        <div class="grid2" style="margin-bottom:20px">
+          <div class="card"><div class="card-h"><h3>Payment breakdown</h3><span class="hint">Where the money stands</span></div><div class="card-b"><div class="fin-bar" id="finBar"></div><div class="fin-break" id="finBreak"></div><div id="finCash" style="margin-top:14px;font-size:12.5px;color:var(--muted)"></div></div></div>
+          <div class="card"><div class="card-h"><h3>Collection rate</h3><span class="hint">Collected vs invoiced</span></div><div class="card-b" style="display:flex;align-items:center;justify-content:center"><div class="fin-donut" id="finDonut"></div></div></div>
+        </div>
+        <div class="aging-row" id="finAging"></div>
+        <div class="toolbar"><select class="filter" id="finFilter" onchange="renderFinance()"><option value="all">All invoices</option><option value="Outstanding">Outstanding</option><option value="Overdue">Overdue only</option><option value="Paid">Paid</option></select><div class="sp"></div><button class="btn-ghost" onclick="exportFinance()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export</button></div>
+        <div class="card"><div class="card-h"><h3>Invoices &amp; collections</h3><span class="hint">Balances to collect, oldest first</span></div><table class="tbl"><thead><tr><th>Invoice</th><th>Customer</th><th class="tnum">Invoiced</th><th class="tnum">Balance</th><th>Due</th><th>Aging</th><th>Status</th><th></th></tr></thead><tbody id="finBody"></tbody></table></div>
+      </div>
+
+      <!-- ══ RECURRING (module: subscription/fee ledger) ══ -->
+      <div class="page" id="page-recurring">
+        <div class="toolbar">
+          <div class="mo-switch"><button id="rcPrev" aria-label="Previous month" onclick="RECUR.shift(-1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button><span class="mo-lbl" id="rcLbl"></span><button id="rcNext" aria-label="Next month" onclick="RECUR.shift(1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></button></div>
+          <div class="sp"></div>
+          <input class="search" id="rcSearch" placeholder="Search…" style="width:180px" oninput="RECUR.setQ(this.value)" aria-label="Search plans">
+        </div>
+        <div class="pay-hero" id="payHero"></div>
+        <div class="pay-segs" id="paySegs"></div>
+        <div class="age-row" id="payAging" role="group" aria-label="Who is behind on fees"></div>
+        <div id="payChaseWrap" style="display:none">
+         <div class="card-h"><div><b id="payChaseTitle"></b>
+          <div class="hint" id="payChaseSub"></div></div>
+          <button class="btn-ghost" onclick="RECUR.setAge('all')">Show everyone</button></div>
+         <div id="payChase"></div>
+        </div>
+        <div class="pay-chips" id="payChips"></div>
+        <div class="card"><div class="card-b" id="payList" ></div></div>
+      </div>
+
+      <!-- ══ FORECAST (module: month-by-month revenue recognition) ══ -->
+      <div class="page" id="page-forecast">
+        <div class="kpis" id="mmKpis" style="grid-template-columns:repeat(3,1fr)"></div>
+        <div class="card">
+          <div class="card-h"><h3>Revenue by month</h3><span class="hint">Tap any cell to edit. Edits recalculate live and reset on reload (demo mode).</span></div>
+          <div class="card-b" style="padding:0;overflow-x:auto"><div id="mmGridWrap"></div></div>
+        </div>
+      </div>
+
+      <!-- ══ TEAM ══ -->
+      <div class="page" id="page-classes">
+        <!-- ══ ONE CLASS, ONE SCREEN. Marking who came, marking what was taught
+             and pasting the recording were three menu items for one Saturday.
+             The date and batch are chosen ONCE at the top and drive all three,
+             and the steps are numbered because the order matters: the recording
+             releases to whoever was marked absent, so attendance has to be in
+             before the link goes out. ══ -->
+        <div class="toolbar">
+          <input type="date" id="klDate" class="filter" onchange="KLASS.setDate(this.value)">
+          <select class="filter" id="klBatch" onchange="KLASS.setBatch(this.value)"><option value="0">2027 Batch</option><option value="1">2028 Batch</option></select>
+          <span id="klLocWrap"><select class="filter" id="attLoc" onchange="ATT.set('loc',this.value)"><option value="all">All locations</option><option value="Kings · Nugegoda">Kings Nugegoda</option><option value="JMC · Kiribathgoda">JMC Kiribathgoda</option><option value="Sasik · Gampaha">Sasik Gampaha</option><option value="Residence">Residence</option><option value="Online">Online</option></select></span>
+          <div class="sp"></div>
+          <span class="hint" id="klHint"></span>
+        </div>
+        <div class="tabbar" id="klTabs" style="margin-bottom:var(--sp-5)">
+          <button class="tab active" data-kt="attendance" onclick="KLASS.tab('attendance')">1 · Who came</button>
+          <button class="tab" data-kt="topics" onclick="KLASS.tab('topics')">2 · What you taught</button>
+          <button class="tab" data-kt="recording" onclick="KLASS.tab('recording')">3 · The recording</button>
+        </div>
+        <div style="display:none">
+          <input type="date" id="attDate"><select id="attBatch"><option value="0">a</option><option value="1">b</option></select>
+          <input type="date" id="clsDate"><select id="clsBatch"><option value="0">a</option><option value="1">b</option></select>
+        </div>
+        <div id="klTab-attendance">        <div id="attSummary"></div>
+        <div class="att-hint">Everyone is Present by default. Tap a student to mark them Absent, then save the register so the class is on record.</div>
+        <div class="card"><div class="card-b" id="attList" ></div></div>
+        <div style="display:flex;gap:12px;align-items:center;margin-top:var(--sp-4);flex-wrap:wrap">
+          <button class="btn-primary" onclick="ATT.saveRegister()">Save register</button>
+          <span class="hint" id="attSaved"></span>
+        </div>
+      </div>
+        <div id="klTab-topics" style="display:none">        <div class="card"><div class="card-h"><h3>What did this class cover?</h3><span class="hint">Tick the topics, then save once. It applies to the whole batch.</span></div>
+          <div class="card-b" id="clsTopics" ></div>
+          <div class="card-b" ><button class="btn-primary" onclick="CLS.save()">Save this class</button> <span class="hint" id="clsSaved"></span></div>
+        </div>
+        <!-- TUTES. Leon assigns these in real life and the system had no way for
+             him to say so, so the app showed "assigned" for units nobody set.
+             It sits on step 2 because he is already here marking what he taught. -->
+        <div class="card"><div class="card-h"><h3>Set the tute for this class</h3><span class="hint">The batch sees it in Learn, under Tutes</span></div>
+          <div class="card-b" id="clsTutes"></div>
+        </div>
+        <div class="card"><div class="card-h"><h3>Coverage so far</h3><span class="hint">How much of the syllabus each batch has seen</span></div><div class="card-b" id="clsProgress" ></div></div>
+        <div class="card"><div class="card-h"><h3>Batch signals</h3><span class="hint">Where this batch is struggling and what to teach next</span></div><div class="card-b" id="clsIntel" ></div></div>
+        <div class="card"><div class="card-h"><h3>Worth a look</h3><span class="hint">At most ten students, each with a reason and one action</span></div><div class="card-b" id="clsQueue" ></div></div>
+      </div>
+        <div id="klTab-recording" style="display:none">
+        <div class="card"><div class="card-h"><h3>Add a recording</h3><span class="hint">Paste the link from Drive, YouTube or Zoom. Your team does this, not Business Booster.</span></div>
+          <div class="card-b">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:10px;margin-bottom:10px">
+              <div style="display:none"><label class="hint" for="recDate">Class date</label><input type="date" id="recDate" class="filter" style="width:100%" onchange="REC.previewNew()"></div>
+              <div style="display:none"><label class="hint" for="recCohort">Batch</label><select id="recCohort" class="filter" style="width:100%" onchange="REC.previewNew()"><option value="0">2027 Batch</option><option value="1">2028 Batch</option></select></div>
+              <div><label class="hint" for="recLoc">Class</label><select id="recLoc" class="filter" style="width:100%"></select></div>
+              <div><label class="hint" for="recMins">Length in minutes <span style="opacity:.7">(optional)</span></label><input type="number" id="recMins" class="filter" style="width:100%" min="1" max="600" placeholder="leave blank if you are not sure"></div>
+            </div>
+            <div style="display:grid;gap:10px;margin-bottom:12px">
+              <div><label class="hint" for="recTitle">What the class covered</label><input id="recTitle" class="filter" style="width:100%" placeholder="Unit 4 · Organising and leading" oninput="this.dataset.touched='1'"></div>
+              <div><label class="hint" for="recUrl">Recording link</label><input id="recUrl" class="filter" style="width:100%" placeholder="https://drive.google.com/file/d/..." oninput="REC.checkUrl()"></div>
+            </div>
+            <div class="hint" id="recUrlWarn" style="margin-bottom:10px"></div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:12px">
+              <div><label class="hint" for="recRelease">Who can watch it</label><select id="recRelease" class="filter" style="width:100%" onchange="REC.previewNew()">
+                <option value="absent">Only the students marked absent</option>
+                <option value="batch">The whole batch</option>
+                <option value="picked">Nobody yet, I will choose</option>
+              </select></div>
+              <div><label class="hint" for="recWindow">Available for</label><select id="recWindow" class="filter" style="width:100%" onchange="REC.previewNew()">
+                <option value="14">14 days after the class</option>
+                <option value="7">7 days after the class</option>
+                <option value="30">30 days after the class</option>
+                <option value="0">No limit</option>
+              </select></div>
+            </div>
+            <div class="hint" id="recPreview" style="margin-bottom:12px"></div>
+            <button class="btn-primary" onclick="REC.add()">Add the recording</button>
+          </div>
+        </div>
+        <div class="card"><div class="card-h"><h3>Recordings</h3><span class="hint" id="recCount"></span></div>
+          <div class="card-b" id="recList"></div>
+        </div>
+        <div class="card" id="recManage" style="display:none"></div>
+      </div>
+      </div>
+
+      <!-- ══ PAPERS: everything a student sits or writes, plus the live class game.
+           The page id stays "quizzes" so routes, roles and the self-test keep working. ══ -->
+      <div class="page" id="page-quizzes">
+        <div class="tabbar" id="qzTabs">
+          <button class="tab active" data-qt="mcq" onclick="QZTAB.go('mcq')">MCQ papers</button>
+          <button class="tab" data-qt="drill" onclick="QZTAB.go('drill')">Speed drills</button>
+          <button class="tab" data-qt="essay" onclick="QZTAB.go('essay')">Essay templates</button>
+          <button class="tab" data-qt="live" onclick="QZTAB.go('live')">Live class quiz</button>
+        </div>
+        <div id="qzTab-live" style="display:none">
+          <div class="team-bar" id="quizBar"></div>
+          <div id="quizBody"></div>
+        </div>
+        <div id="qzTab-mcq">
+          <div class="team-bar" id="mcqBar"></div>
+          <div id="mcqBody"></div>
+        </div>
+        <div id="qzTab-essay" style="display:none">
+          <div class="team-bar" id="essBar"></div>
+          <div id="essBody"></div>
+        </div>
+      </div>
+
+      <div class="page" id="page-messages">
+        <div class="kpi-row" id="msgStats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:var(--sp-5)"></div>
+        <div class="card"><div class="card-h"><h3>Send an update</h3><span class="hint">It lands in each student’s app, on their dashboard when it matters</span></div>
+          <div class="card-b">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div><label class="hint" for="msgType">Type</label>
+                <select class="filter" id="msgType" style="width:100%" onchange="MSG.preview()">
+                  <option value="class">Class notice</option><option value="learning">New tute or paper</option>
+                  <option value="seminar">Seminar</option><option value="delivery">Courier dispatch</option>
+                  <option value="payment">Payment confirmation</option><option value="general">General announcement</option>
+                </select></div>
+              <div><label class="hint" for="msgAud">Send to</label>
+                <select class="filter" id="msgAud" style="width:100%" onchange="MSG.preview()">
+                  <option value="all">Whole academy</option><option value="c0">2027 Batch</option><option value="c1">2028 Batch</option>
+                  <option value="Kings · Nugegoda">Kings, Nugegoda</option><option value="JMC · Kiribathgoda">JMC, Kiribathgoda</option>
+                  <option value="Sasik · Gampaha">Sasik, Gampaha</option><option value="Residence">Residence</option>
+                  <!-- Leon's team: "We should be able to send a message, for example a
+                       Zoom link, to the selected class." A hall is not a class. A Zoom
+                       link is for everyone taught online, whatever hall they are on the
+                       roster for, and a revision note is for revision students in both
+                       batches. These three cuts are how they actually teach. -->
+                  <optgroup label="How they attend">
+                    <option value="mode:online">Online students</option>
+                    <option value="mode:physical">Physical students</option>
+                  </optgroup>
+                  <optgroup label="What they take">
+                    <option value="prog:Theory">Theory Only</option>
+                    <option value="prog:Revision">Revision Only</option>
+                    <option value="prog:Combined">Theory and Revision</option>
+                  </optgroup>
+                </select></div>
+            </div>
+            <!-- A tracking number typed into a sentence cannot be copied, linked
+                 or checked. These appear only for a courier dispatch. -->
+            <div id="msgCourier" style="display:none;margin-top:10px;grid-template-columns:1fr 1fr;gap:10px">
+              <div><label class="hint" for="msgCourierCo">Courier</label>
+                <input class="filter" id="msgCourierCo" style="width:100%" maxlength="40" placeholder="Fardar Express" oninput="MSG.preview()"></div>
+              <div><label class="hint" for="msgCourierNo">Tracking number</label>
+                <input class="filter" id="msgCourierNo" style="width:100%" maxlength="30" placeholder="FD1284563" oninput="MSG.preview()"></div>
+            </div>
+            <div style="margin-top:10px"><label class="hint" for="msgTitle">Title</label>
+              <input class="filter" id="msgTitle" style="width:100%" maxlength="80" placeholder="Saturday class starts at 9.00" oninput="MSG.preview()"></div>
+            <div style="margin-top:10px"><label class="hint" for="msgBody">Message</label>
+              <textarea class="filter" id="msgBody" style="width:100%;min-height:74px;resize:vertical" maxlength="400" placeholder="Short and clear. Students read this on a phone." oninput="MSG.preview()"></textarea></div>
+            <div class="hint" id="msgPreview" style="margin-top:10px"></div>
+            <div class="hint" id="msgWarn" style="margin-top:6px;font-weight:700"></div>
+            <button class="btn-primary" id="msgSendBtn" style="margin-top:12px" onclick="MSG.send()">Review and send</button>
+          </div>
+        </div>
+        <!-- THE RETURN LEG. The app told a student "Leon's list has your name"
+             and no list existed. This is that list. -->
+        <div class="card"><div class="card-h"><h3>Who is coming</h3><span class="hint" id="rsvpHint"></span></div>
+          <div class="card-b" id="rsvpBody"></div>
+        </div>
+        <div class="card"><div class="card-h"><h3>Sent and scheduled</h3><span class="hint">Delivery and read figures are demo values until the live pipe connects</span></div>
+          <table class="tbl"><thead><tr><th>Message</th><th>Audience</th><th class="tnum">Sent to</th><th class="tnum">Opened</th><th>Status</th></tr></thead><tbody id="msgBody2"></tbody></table>
+        </div>
+      </div>
+      <!-- ══ STUDENT APP CONTROL: Bihandu runs logins and app settings without
+           BB. Demo scope: everything is recorded here; it reaches the app with
+           the live connection. ══ -->
+      <div class="page" id="page-app">
+        <div class="tabbar" id="appTabs">
+          <button class="tab active" data-at2="access" onclick="APP.tab('access')">Access</button>
+          <button class="tab" data-at2="experience" onclick="APP.tab('experience')">Experience</button>
+          <button class="tab" data-at2="content" onclick="APP.tab('content')">Content</button>
+          <button class="tab" data-at2="health" onclick="APP.tab('health')">Health</button>
+        </div>
+
+        <!-- ══ ACCESS. No password is ever stored or shown. A code appears once
+             at the moment it is made, then it is gone: the pattern real
+             authentication will enforce, taught to the team from day one. ══ -->
+        <div id="appTab-access">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:var(--sp-5)" id="accStats"></div>
+          <!-- The question Leon actually has, before the roster: who took the
+               app and stopped opening it. A student who goes quiet in the app
+               usually goes quiet in the hall a few weeks later. -->
+          <div class="card"><div class="card-h"><h3>Have it, stopped opening it</h3><span class="hint" id="quietHint"></span></div>
+            <div class="card-b" id="quietBody"></div>
+          </div>
+          <div class="card"><div class="card-h"><h3>Student access</h3><span class="hint">Reset sends a fresh one-time code. Nobody, including BB, can see a current password.</span></div>
+            <div class="card-b">
+              <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+                <input class="filter" id="accSearch" placeholder="Search students…" style="flex:2;min-width:160px" oninput="APP.renderAccess()">
+                <select class="filter" id="accFilter" style="flex:1;min-width:130px" onchange="APP.renderAccess()">
+                  <option value="all">All statuses</option><option value="active">Active</option>
+                  <option value="never">Never signed in</option><option value="locked">Locked</option>
+                </select>
+              </div>
+              <table class="tbl"><thead><tr><th>Student</th><th>Username</th><th>Status</th><th>Last active</th><th></th></tr></thead><tbody id="accRows"></tbody></table>
+              <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
+                <select class="filter" id="appNewStudent" style="flex:1;min-width:180px"></select>
+                <button class="btn-primary" onclick="APP.addLogin()">Create access</button>
+              </div>
+            </div>
+          </div>
+          <!-- ══ PARENT ACCESS. A parent signs in with their CHILD'S name and a
+               code, on the parent app at /parent/. They see fees, attendance,
+               coverage and Leon's read. They never see the student's own topic
+               ratings or paper marks: a student who knows a parent sees every
+               attempt stops logging honest attempts. ══ -->
+          <div class="card"><div class="card-h"><h3>Parent access</h3><span class="hint">Fees, attendance and coverage only · the parent app is at /parent/</span></div>
+            <div class="card-b">
+              <table class="tbl"><thead><tr><th>Child</th><th>Parent</th><th>Status</th><th>Last active</th><th></th></tr></thead><tbody id="parRows"></tbody></table>
+              <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
+                <select class="filter" id="parNewStudent" style="flex:1;min-width:180px"></select>
+                <select class="filter" id="parNewLabel" style="min-width:120px">
+                  <option>Mother</option><option>Father</option><option>Guardian</option><option>Parent</option>
+                </select>
+                <button class="btn-primary" onclick="PARENTS.add()">Give a parent access</button>
+              </div>
+            </div>
+          </div>
+          <div class="card" id="accManage" style="display:none"></div>
+        </div>
+
+        <!-- ══ EXPERIENCE: what students see, scoped, with the effect stated ══ -->
+        <div id="appTab-experience" style="display:none">
+          <div class="card"><div class="card-h"><h3>Features</h3><span class="hint">Every change states its effect and lands in the activity log</span></div>
+            <div class="card-b" id="expFeatures" ></div>
+          </div>
+          <details class="card"><summary style="padding:14px 18px;cursor:pointer;font-weight:700;font-size:13.5px;list-style:none;display:flex;align-items:center;gap:8px">Road to an A<span class="hint" style="font-weight:400">the 14 steps and their wording</span><span class="hint" style="margin-left:auto">Open</span></summary>
+            <div class="card-b" id="expRoad" ></div>
+          </details>
+        <details class="card"><summary style="padding:14px 18px;cursor:pointer;font-weight:700;font-size:13.5px;list-style:none;display:flex;align-items:center;gap:8px">Rewards<span class="hint" style="font-weight:400">prizes, wording and the attendance bars</span><span class="hint" style="margin-left:auto">Open</span></summary>
+            <div class="card-b" id="expRewards" ></div>
+          </details>
+        <details class="card"><summary style="padding:14px 18px;cursor:pointer;font-weight:700;font-size:13.5px;list-style:none;display:flex;align-items:center;gap:8px">Self-checks<span class="hint" style="font-weight:400">how often the app re-asks a student</span><span class="hint" style="margin-left:auto">Open</span></summary>
+            <div class="card-b" id="expChecks" ></div>
+          </details>
+        <details class="card"><summary style="padding:14px 18px;cursor:pointer;font-weight:700;font-size:13.5px;list-style:none;display:flex;align-items:center;gap:8px">Support<span class="hint" style="font-weight:400">where Ask Leon points</span><span class="hint" style="margin-left:auto">Open</span></summary>
+            <div class="card-b" id="expSupport" ></div>
+          </div>
+        </div>
+
+        <!-- ══ CONTENT ══ --></details>
+        <div id="appTab-content" style="display:none">
+          <div class="card"><div class="card-h"><h3>Past papers</h3>
+            <span class="hint">The library students see. Upload the PDF in Hostinger&rsquo;s file manager first, then register it here.</span></div>
+            <div class="card-b" id="ctPapers"></div>
+          </div>
+          <div class="card"><div class="card-h"><h3>Unit weightage</h3>
+            <span class="hint">Where the marks are. Students see it on the syllabus, with your name on it.</span></div>
+            <div class="card-b" id="ctWeights"></div>
+          </div>
+          <div class="card"><div class="card-h"><h3>Splash lines</h3><span class="hint">One shows each morning. Short, useful, never preachy and never shaming.</span></div>
+            <div class="card-b" id="ctSplash" ></div>
+          </div>
+          <div class="card"><div class="card-h"><h3>Student commitment</h3><span class="hint">Every student signs this on day one</span></div>
+            <div class="card-b">
+              <textarea class="filter" id="ctOath" style="width:100%;min-height:84px;resize:vertical"></textarea>
+              <div style="display:flex;gap:10px;align-items:center;margin-top:8px">
+                <button class="btn-primary" onclick="APP.saveOath()">Publish</button>
+                <span class="hint" id="ctOathMeta"></span>
+              </div>
+            </div>
+          </div>
+          <div class="card"><div class="card-h"><h3>Help wording</h3><span class="hint">Shown when a student is stuck or locked out</span></div>
+            <div class="card-b">
+              <textarea class="filter" id="ctHelp" style="width:100%;min-height:64px;resize:vertical"></textarea>
+              <button class="btn-primary" style="margin-top:8px" onclick="APP.saveHelp()">Save</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ HEALTH: every number is a door, not a decoration ══ -->
+        <div id="appTab-health" style="display:none">
+          <div class="card"><div class="card-h"><h3>App health</h3><span class="hint">Adoption figures are demo values until the live connection; the structure is real</span></div>
+            <div class="card-b" id="hlRows" ></div>
+          </div>
+        </div>
+      </div>
+      <div class="page" id="page-team">
+        <div class="team-bar" id="teamBar"></div>
+        <div class="team-grid" id="teamGrid"></div>
+      </div>
+
+      <!-- ══ ACTIVITY (system-wide audit + login audit, always-on) ══ -->
+      <div class="page" id="page-activity">
+        <div class="tabbar"><button class="tab active" data-at="feed" onclick="activityTab('feed')">Activity log</button><button class="tab" data-at="login" onclick="activityTab('login')">Login audit</button></div>
+        <div id="actFeedView"><div class="card"><div class="card-h"><h3>What happened</h3><span class="hint">Every action, newest first</span></div><div class="card-b" id="actFeed" ></div></div></div>
+        <div id="actLoginView" style="display:none"><div class="card"><div class="card-h"><h3>Sign-ins</h3><span class="hint">Who signed in, where and when</span></div><table class="tbl"><thead><tr><th>User</th><th>Role</th><th>Device</th><th class="tnum">Signed in</th></tr></thead><tbody id="loginAuditBody"></tbody></table></div></div>
+      </div>
+
+      <!-- ══ SETTINGS ══ -->
+      <!-- ══ CUSTOMIZATION STUDIO (owner-only; edits only the tenant config) ══ -->
+      <div class="page" id="page-settings">
+        <div class="stu-hero">
+          <div class="sh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div>
+          <div style="flex:1;min-width:200px"><div class="sh-t">Customization Studio</div><div class="sh-s" id="stuHeroSub">Make this system yours. Every change is safe to try — undo any edit, or reset any section back to default.</div></div>
+        </div>
+        <div class="tabbar" id="stuTabs"></div>
+        <div class="stu-sec" id="stuBody"></div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- ══════════ DETAIL PANEL · MODALS · TOAST ══════════ -->
+<!-- ══ QUIZ HOST: the class screen. Full screen, read from the back row. ══ -->
+<div class="qh-wrap" id="qhWrap" role="dialog" aria-modal="true" aria-label="Quiz host">
+  <div class="qh-top"><div class="t" id="qhTitle"></div><button class="qh-x" onclick="QHOST.quit()">End game</button></div>
+  <div class="qh-mid" id="qhMid"></div>
+  <div class="qh-foot" id="qhFoot"></div>
+</div>
+<div class="overlay" id="overlay" onclick="if(typeof ESSAY!=='undefined'&&ESSAY.draft)ESSAY.close();else closePanel()"></div>
+<aside class="panel" id="panel" aria-label="Detail panel"></aside>
+
+<div class="modal-ov" id="recordModal">
+  <div class="modal" style="width:520px">
+    <div class="modal-h"><h3 id="recModalTitle">New Lead</h3><button class="pn-close" onclick="closeRecordModal()" style="position:static;width:30px;height:30px">&#10005;</button></div>
+    <div class="modal-b">
+      <div class="fld" id="f_name"><label for="rc_name" data-fl="name">Name</label><input id="rc_name" placeholder="e.g. Sunrise Traders"><div class="err">Please enter a name.</div></div>
+      <div class="fld-grid2">
+        <div class="fld"><label for="rc_batch">Batch</label><select id="rc_batch" onchange="rcPrice()"></select></div>
+        <div class="fld" id="f_phone"><label for="rc_phone" data-fl="phone">Phone</label><input id="rc_phone" inputmode="tel" placeholder="07X XXX XXXX"><div class="err">Enter a valid Sri Lankan number.</div></div>
+      </div>
+      <div class="fld-grid3">
+        <div class="fld"><label for="rc_stage" data-fl="stage">Stage</label><select id="rc_stage"></select></div>
+        <div class="fld"><label for="rc_owner" data-fl="owner">Owner</label><select id="rc_owner"></select></div>
+      </div>
+      <div class="fld-grid2">
+        <div class="fld"><label for="rc_prog">Class they want</label><select id="rc_prog" onchange="rcPrice()"></select></div>
+        <div class="fld"><label for="rc_school">School <span style="color:var(--faint);font-weight:400">(optional)</span></label><input id="rc_school" placeholder="e.g. Royal College"></div>
+      </div>
+      <!-- THE VALUE IS NO LONGER TYPED. Leon: "We don't need enrolment value for
+           new enquiries. Auto calculate based on batch and class selection." A
+           typed value is a guess that becomes a forecast. -->
+      <div class="fld" id="f_value"><label>Enrolment value</label>
+        <div class="rc-price" id="rc_priceLbl">Pick a batch and a class.</div>
+        <input id="rc_value" type="hidden"></div>
+      <div class="fld"><label for="rc_follow">Follow-up date <span style="color:var(--faint);font-weight:400">(optional)</span></label><input id="rc_follow" type="date"></div>
+    </div>
+    <div class="modal-f"><button class="btn-ghost" onclick="closeRecordModal()">Cancel</button><button class="btn-primary" onclick="saveRecord()">Save</button></div>
+  </div>
+</div>
+
+<div class="modal-ov" id="taskModal">
+  <div class="modal">
+    <div class="modal-h"><h3>Add Task</h3><button class="pn-close" onclick="closeTaskModal()" style="position:static;width:30px;height:30px">&#10005;</button></div>
+    <div class="modal-b">
+      <div class="fld" id="f_task"><label for="tk_title">Task</label><input id="tk_title" placeholder="e.g. Follow up on the Sunrise quote"><div class="err">Please describe the task.</div></div>
+      <div class="fld-grid2">
+        <div class="fld"><label for="tk_who">Assign to</label><select id="tk_who"></select></div>
+        <div class="fld"><label for="tk_due">Due</label><input id="tk_due" type="date"></div>
+      </div>
+    </div>
+    <div class="modal-f"><button class="btn-ghost" onclick="closeTaskModal()">Cancel</button><button class="btn-primary" onclick="saveTask()">Add Task</button></div>
+  </div>
+</div>
+
+<!-- PRODUCT modal (inventory add/edit) -->
+<div class="modal-ov" id="productModal">
+  <div class="modal" style="width:520px">
+    <div class="modal-h"><h3 id="pmTitle">Add product</h3><button class="pn-close" onclick="closeProductModal()" style="position:static;width:30px;height:30px">&#10005;</button></div>
+    <div class="modal-b">
+      <div class="fld"><label>Photo</label>
+        <div class="photo-drop" id="pmPhoto" onclick="document.getElementById('pmFile').click()"><div id="pmPhotoInner"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" style="margin-bottom:6px"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg><div style="font-size:12.5px;font-weight:600">Tap to add a photo</div><div style="font-size:11px;color:var(--faint);margin-top:2px">compressed to ~1200px · stored in Supabase Storage</div></div></div>
+        <input id="pmFile" type="file" accept="image/*" style="display:none" onchange="pmPickPhoto(this)">
+      </div>
+      <div class="fld" id="f_pname"><label for="pm_name">Product name</label><input id="pm_name" placeholder="e.g. LED Panel Light 18W"><div class="err">Please enter a name.</div></div>
+      <div class="fld-grid2">
+        <div class="fld"><label for="pm_code">Product code</label><input id="pm_code" placeholder="e.g. LED-18"></div>
+        <div class="fld" id="f_pprice"><label for="pm_price">Price (LKR)</label><input id="pm_price" inputmode="numeric" placeholder="e.g. 2,200"><div class="err">Numbers only.</div></div>
+      </div>
+      <div class="fld"><label for="pm_details">Details</label><input id="pm_details" placeholder="Short description"></div>
+      <div class="fld-grid2">
+        <div class="fld" id="f_pqty"><label for="pm_qty">Quantity in stock</label><input id="pm_qty" inputmode="numeric" placeholder="e.g. 48"><div class="err">Numbers only.</div></div>
+        <div class="fld"><label for="pm_thr">Low-stock alert at</label><input id="pm_thr" inputmode="numeric" placeholder="e.g. 10"></div>
+      </div>
+    </div>
+    <div class="modal-f"><button class="btn-ghost" onclick="closeProductModal()">Cancel</button><button class="btn-primary" onclick="saveProduct()">Save</button></div>
+  </div>
+</div>
+
+<!-- IMPORT modal (bulk Excel/CSV, any record type) -->
+<div class="modal-ov" id="importModal">
+  <div class="modal" style="width:560px">
+    <div class="modal-h"><div><h3 id="impTitle">Import</h3><div id="impSub" style="font-size:12.5px;color:var(--muted);margin-top:2px"></div></div><button class="pn-close" onclick="closeImport()" style="position:static;width:30px;height:30px">&#10005;</button></div>
+    <div class="modal-b">
+      <div class="imp-steps"><div class="imp-step on" id="impStep1"></div><div class="imp-step" id="impStep2"></div><div class="imp-step" id="impStep3"></div></div>
+      <!-- Step 1: file -->
+      <div id="impPane1">
+        <div class="imp-drop" id="impDrop" onclick="document.getElementById('impFile').click()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <div class="id-t">Drop a .csv or .xlsx here, or tap to choose</div>
+          <div class="id-s">First row must be column headers</div>
+        </div>
+        <input id="impFile" type="file" accept=".csv,.xlsx,.xls" style="display:none" onchange="impFileChosen(this.files[0])">
+        <div style="text-align:center;margin-top:14px;font-size:12.5px;color:var(--muted)">Not sure of the format? <button class="lk" style="color:var(--brand);font-weight:600;background:none;border:none;cursor:pointer" onclick="downloadImportTemplate()">Download the import template</button></div>
+      </div>
+      <!-- Step 2: map -->
+      <div id="impPane2" style="display:none">
+        <div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">Match your columns to the system fields. Required fields are marked.</div>
+        <div class="imp-map" id="impMap"></div>
+        <div class="imp-prev" id="impPrev"></div>
+      </div>
+      <!-- Step 3: summary -->
+      <div id="impPane3" style="display:none">
+        <div class="imp-summary" id="impSummary"></div>
+      </div>
+    </div>
+    <div class="modal-f" id="impFooter">
+      <button class="btn-ghost" onclick="closeImport()">Cancel</button>
+      <button class="btn-primary" id="impNext" onclick="impDoImport()" style="display:none">Import</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>

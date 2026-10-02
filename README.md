@@ -16,6 +16,7 @@ Docker for local services · Railway for hosting.
 - How it fits together, with diagrams: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**
 - Deploying to Railway: **[DEPLOY.md](DEPLOY.md)**
 - Code conventions: **[BUILD-GUIDE.md](BUILD-GUIDE.md)**
+- Review findings, fixed and open: **[docs/BUG-REPORT.md](docs/BUG-REPORT.md)**
 
 ---
 
@@ -75,8 +76,11 @@ npm run vapid
 # → copy "Public Key" into VAPID_PUBLIC_KEY and "Private Key" into VAPID_PRIVATE_KEY
 ```
 
-The JWT and ticket secrets in `.env.example` are fine for your own computer.
-**Never reuse them on a server.**
+The JWT and ticket secrets in `.env.example` are fine for `npm run dev`.
+A **production** run (`npm start`, the Docker image, Railway) refuses to
+start with them; `/api/health` then explains which ones. Generate real ones
+with `openssl rand -base64 48` (or `node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"`).
+**Never reuse the example values on a server.**
 
 Choose the first owner account in `.env`:
 

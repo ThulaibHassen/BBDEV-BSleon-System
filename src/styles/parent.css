@@ -1,0 +1,948 @@
+
+/* ══════════════════════════════════════════════════════════════════════
+   BSWL STUDENT v3
+   The loop: open, see one action, start it in one tap, finish something
+   small, get told what it changed, know what is next.
+
+   COLOUR NOTE: monochrome is a locked client rule ("super ugly, I like the
+   white and black"). So state is never carried by colour: every status has
+   an icon, a word, or a weight. Semantic tokens exist but are deliberately
+   neutral. Both themes are first-class.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── TOKENS ─────────────────────────────────────────────────────────── */
+:root{
+ --sat:env(safe-area-inset-top,0px);
+ --sab:env(safe-area-inset-bottom,0px);
+
+ /* type scale */
+ --t-xs:12px; --t-sm:13px; --t-base:15px; --t-md:16px; --t-lg:18px;
+ --t-xl:21px; --t-2xl:26px; --t-3xl:32px;
+ --lh-tight:1.2; --lh-snug:1.35; --lh:1.5;
+
+ /* spacing */
+ --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px;
+ --s8:32px; --s10:40px; --s12:48px;
+
+ /* shape */
+ --r-sm:8px; --r-md:12px; --r-lg:16px; --r-xl:20px; --r-pill:999px;
+
+ /* motion */
+ --m-fast:120ms; --m-base:220ms; --m-slow:320ms;
+ --ease:cubic-bezier(.2,.8,.2,1);
+
+ /* dark (default) */
+ --bg:#0d0d0d; --surface:#161616; --surface-2:#1e1e1e; --surface-3:#262626;
+ --text:#f7f7f7; --text-2:#b4b4b4; --text-3:#8a8a8a;
+ --line:#2a2a2a; --line-2:#3a3a3a;
+ --accent:#f7f7f7; --on-accent:#0d0d0d;
+ --focus:#8ab4ff;
+ /* THE ONLY COLOUR IN A MONOCHROME APP. It means ONE thing: this expires.
+    Not "new", not "important". The moment it also means important, everything
+    becomes important and the screen is flat again with paint on it. Four uses,
+    listed at .urgent below. Set this to var(--text) to remove it entirely. */
+ --urgent:#f0a92b;
+ --urgent-on-light:#8a5a00;   /* the same idea on the inverted primary card */
+ --scrim:rgba(0,0,0,.62);
+}
+/* TWO ATTRIBUTES, TWO JOBS. data-mode is light or dark, data-theme is the
+   colour. They used to share data-theme, so picking Neon silently deleted the
+   student's light mode and picking light deleted their colour. One attribute
+   cannot hold two independent choices. */
+@media(prefers-color-scheme:light){
+ :root:not([data-mode="dark"]){
+  --bg:#f6f6f7; --surface:#ffffff; --surface-2:#f1f1f3; --surface-3:#e8e8ea;
+  --text:#121212; --text-2:#5a5a5f; --text-3:#78787e;
+  --line:#e3e3e6; --line-2:#d2d2d7;
+  --accent:#121212; --on-accent:#ffffff;
+  --scrim:rgba(0,0,0,.34);
+ }
+}
+:root[data-mode="light"]{
+ --bg:#f6f6f7; --surface:#ffffff; --surface-2:#f1f1f3; --surface-3:#e8e8ea;
+ --text:#121212; --text-2:#5a5a5f; --text-3:#78787e;
+ --line:#e3e3e6; --line-2:#d2d2d7;
+ --accent:#121212; --on-accent:#ffffff;
+ --scrim:rgba(0,0,0,.34);
+ /* amber reads 1.9:1 on white, so on a light screen urgency goes darker.
+    Same meaning, same hue family, legible in daylight. */
+ --urgent:#8a5a00;
+}
+
+/* THE EXAM CLOCK. Calm on purpose. No red, no pulse, no alarm colour: a student
+   sees this every single morning and a screen that shouts every morning stops
+   being heard. Tabular numerals so the digits do not shuffle sideways as they
+   count, which is the difference between a clock and a flicker. */
+.examclock{text-align:center;padding:var(--s5) var(--s4)}
+.ec-lbl{font-size:var(--t-xs);color:var(--text-3);text-transform:uppercase;
+ letter-spacing:.08em;font-weight:700;margin-bottom:var(--s3)}
+.ec-row{display:flex;justify-content:center;gap:var(--s3)}
+/* TILES, not a run of digits. Each unit is its own block so the eye reads
+   "14 days" as one fact, and so a second unit can appear as the date closes
+   without the first one moving. */
+.ec-t{background:var(--surface-2);border-radius:var(--r-md);padding:var(--s3) var(--s4);
+ min-width:96px}
+.ec-solo{min-width:0;background:none;padding:0}
+.ec-n{font-size:40px;font-weight:750;letter-spacing:-.03em;line-height:1;
+ font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+.ec-solo .ec-n{font-size:56px}
+.ec-l{font-size:var(--t-xs);color:var(--text-2);margin-top:var(--s2);font-weight:600}
+.ec-when{font-size:var(--t-sm);color:var(--text-3);margin-top:var(--s3)}
+.ec-say{font-size:var(--t-lg);font-weight:650;line-height:var(--lh-snug)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* THE WALKTHROUGH. Full screen on a phone, because a modal a student can see
+   past is a modal they dismiss without reading. Skip is always there and always
+   in the same place. */
+.wt-wrap{position:fixed;inset:0;z-index:1400;display:none;background:var(--bg)}
+.wt-wrap.on{display:flex;align-items:stretch}
+.wt-card{display:flex;flex-direction:column;width:100%;
+ padding:calc(env(safe-area-inset-top,0px) + var(--s6)) var(--s5)
+         calc(env(safe-area-inset-bottom,0px) + var(--s5))}
+.wt-skip{position:absolute;top:calc(env(safe-area-inset-top,0px) + var(--s4));right:var(--s5);
+ background:none;border:none;color:var(--text-3);font-size:var(--t-sm);font-weight:600;
+ padding:var(--s2);min-height:44px;min-width:44px}
+.wt-body{flex:1;display:flex;flex-direction:column;justify-content:center;overflow-y:auto}
+.wt-step{font-size:var(--t-xs);color:var(--text-3);text-transform:uppercase;
+ letter-spacing:.08em;font-weight:700;margin-bottom:var(--s3)}
+.wt-h{font-size:var(--t-2xl);font-weight:750;letter-spacing:-.02em;
+ line-height:var(--lh-tight);margin-bottom:var(--s4)}
+.wt-p{font-size:var(--t-md);line-height:var(--lh);color:var(--text-2);margin-bottom:var(--s3)}
+.wt-p b{color:var(--text);font-weight:650}
+.wt-inst{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
+ padding:var(--s4);margin-top:var(--s4);font-size:var(--t-md)}
+.wt-ol{list-style:none;margin-top:var(--s3);display:flex;flex-direction:column;gap:var(--s3)}
+.wt-ol li{display:flex;align-items:center;gap:var(--s3);font-size:var(--t-base);color:var(--text-2)}
+.wt-n{width:22px;height:22px;border-radius:50%;background:var(--surface-2);
+ display:flex;align-items:center;justify-content:center;font-size:var(--t-xs);
+ font-weight:700;color:var(--text);flex-shrink:0}
+.wt-ic{width:18px;height:18px;flex-shrink:0}
+/* 140px, not 120: "Start using it" wrapped to two lines and a button that
+   changes height between cards makes the whole footer jump. */
+.wt-foot{display:grid;grid-template-columns:96px minmax(0,1fr) 140px;
+ align-items:center;gap:var(--s3);padding-top:var(--s5)}
+/* .btn carries width:100%, which beat flex:0 0 auto and made every control a
+   full width row that wrapped, so the footer looked empty with one dot adrift
+   in the corner. A grid sizes the tracks and the buttons fill the track they
+   are given. */
+.wt-foot .btn{width:100%;min-width:0;white-space:nowrap;padding-left:0;padding-right:0}
+.wt-dots{flex:1;display:flex;justify-content:center;gap:6px}
+.wt-dot{width:6px;height:6px;border-radius:50%;background:var(--line-2)}
+.wt-dot.on{background:var(--accent)}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+
+/* ══ BB APP FOUNDATIONS ══════════════════════════════════════════════════
+   Portable. No app specific selectors. Lift this block whole into any BB app.
+   Every rule here exists because a phone does something a desktop does not. */
+
+/* 1. DOUBLE TAP NO LONGER ZOOMS, and the 300ms tap delay goes with it.
+      `manipulation` keeps panning and keeps PINCH zoom, which is an
+      accessibility tool a real person uses. It only removes the double tap
+      gesture, which in an app is never what the person meant. */
+html{touch-action:manipulation}
+
+/* 2. NO BLUE FLASH on tap, and no long press menu offering to copy a button. */
+*{-webkit-tap-highlight-color:transparent}
+button,label,.tabs,.seg,.hdr,[role="button"]{
+ -webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+/* values and notes stay selectable: a member copying their own numbers is fine */
+input,textarea,p,.lede,.tw,.why{-webkit-user-select:auto;user-select:auto}
+
+/* 3. THE FIELD ZOOM. iOS zooms the entire viewport when a focused input has
+      text under 16px, and it does not zoom back out. That is the "it zooms in
+      and looks weird" Thulaib described. 16px is the threshold, not a
+      preference. Coarse pointers only, so desktop keeps its own scale. */
+@media (pointer:coarse){
+ input,select,textarea{font-size:16px!important}
+}
+
+/* 4. SCROLL STAYS WHERE IT WAS PUT. `contain` stops a scroll that reaches the
+      end of a sheet from continuing into the page behind it. On the page
+      itself `none` also removes pull to refresh, which in an installed app
+      reloads the whole thing for no reason a member would expect. */
+html,body{overscroll-behavior-y:none}
+.scrim,.sheet,.inboxw,.flow,[data-scroll]{overscroll-behavior:contain}
+
+/* 5. THE PAGE BEHIND A SHEET IS FROZEN, not merely covered. */
+body.sheet-open{position:fixed;left:0;right:0;width:100%;overflow:hidden}
+[inert]{pointer-events:none}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{
+ font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display','Segoe UI',Roboto,Inter,system-ui,sans-serif;
+ background:var(--bg);color:var(--text);font-size:var(--t-base);line-height:var(--lh);
+ -webkit-font-smoothing:antialiased;
+ padding-bottom:calc(64px + var(--sab));
+ overflow-x:hidden;
+}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;text-align:left}
+a{color:inherit;text-decoration:none}
+svg{display:block;flex:none}
+:focus{outline:none}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:var(--r-sm)}
+.num{font-variant-numeric:tabular-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ── SHELL ──────────────────────────────────────────────────────────── */
+.statusfill{position:fixed;top:0;left:0;right:0;height:var(--sat);background:var(--bg);z-index:60;pointer-events:none}
+/* ── LOGIN ─────────────────────────────────────────────────── */
+.login{position:fixed;inset:0;z-index:150;background:var(--bg);display:flex;
+ align-items:center;justify-content:center;padding:var(--s5);
+ padding-top:calc(var(--s5) + var(--sat));padding-bottom:calc(var(--s5) + var(--sab));
+ overflow-y:auto}
+.login.gone{display:none}
+.login-in{width:100%;max-width:340px;text-align:center}
+.login-in label{text-align:center}
+.login-in input{text-align:left}
+.lg-stage{position:relative;width:100%;height:136px;margin-bottom:var(--s4)}
+.lg-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;
+ transition:opacity 300ms var(--ease)}
+/* the finished logo. Geometry lives here only; the particles read this rect.
+   THE ASPECT IS PINNED HERE, not left to the file. The mark is two files now,
+   one per mode, and width:auto means the box measures zero for the frame
+   between swapping the src and the new file decoding. The particles read that
+   rect, so for that frame they would aim at a point instead of a bulb. */
+.lg-logo{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+ height:120px;width:auto;aspect-ratio:265/322;opacity:0;transition:opacity 300ms var(--ease)}
+.lg-stage.revealed .lg-logo{opacity:1}
+.lg-stage.revealed canvas{opacity:0}
+/* THE SWITCH-ON, IN LIGHT MODE. Dark mode gets a white bloom painted on the
+   canvas. On a near-white page white light is invisible, and amber is spoken
+   for — it means "this expires" and nothing else, four uses, listed at
+   .urgent. So light mode says "on" the only way a monochrome app can: the
+   finished mark arrives with a short pop instead of a fade. */
+@keyframes lgPop{from{transform:translate(-50%,-50%) scale(.94);opacity:0}
+ to{transform:translate(-50%,-50%) scale(1);opacity:1}}
+@media(prefers-color-scheme:light){:root:not([data-mode="dark"]) .lg-stage.revealed .lg-logo{
+ animation:lgPop 340ms var(--ease) both}}
+:root[data-mode="light"] .lg-stage.revealed .lg-logo{animation:lgPop 340ms var(--ease) both}
+@media(prefers-reduced-motion:reduce){.lg-logo,.lg-stage canvas{transition:none}
+ .lg-stage.revealed .lg-logo{animation:none}}
+.lg-t{font-size:var(--t-2xl);font-weight:680;letter-spacing:-.02em;line-height:1.1}
+.lg-s{font-size:var(--t-sm);color:var(--text-2);margin:var(--s1) 0 var(--s6)}
+.lg-err{font-size:var(--t-sm);color:var(--text);font-weight:600;margin-top:var(--s3);min-height:1.2em}
+.lg-foot{font-size:var(--t-xs);color:var(--text-3);margin-top:var(--s5);text-align:center}
+/* ── UPDATES (inbox). In-app delivery first; push is a later channel. ── */
+.bell{width:40px;height:40px;border-radius:var(--r-pill);background:var(--surface-2);
+ display:flex;align-items:center;justify-content:center;position:relative;flex:none}
+.bell svg{width:20px;height:20px}
+.bell .bb{position:absolute;top:6px;right:6px;min-width:16px;height:16px;border-radius:var(--r-pill);
+ background:var(--accent);color:var(--on-accent);font-size:10px;font-weight:800;
+ display:flex;align-items:center;justify-content:center;padding:0 4px}
+.inboxw{position:fixed;inset:0;z-index:65;background:var(--bg);display:none;flex-direction:column;overflow-y:auto}
+.inboxw.on{display:flex;animation:sIn var(--m-base) var(--ease)}
+.ib-top{position:sticky;top:0;z-index:2;background:var(--bg);
+ padding:calc(var(--s3) + var(--sat)) var(--s4) var(--s3);display:flex;align-items:center;gap:var(--s3)}
+.ib-body{flex:1;max-width:600px;width:100%;margin:0 auto;padding:0 var(--s4) var(--s10)}
+.msg{border-top:1px solid var(--line);padding:var(--s3) 0;display:flex;gap:var(--s3);align-items:flex-start;width:100%}
+.msg:first-child{border-top:none}
+.msg .dotu{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none;margin-top:7px}
+.msg.read .dotu{background:transparent}
+.msg .m-t{font-size:var(--t-base);font-weight:650;line-height:var(--lh-snug)}
+.msg.read .m-t{font-weight:500}
+.msg .m-b{font-size:var(--t-sm);color:var(--text-2);margin-top:2px}
+.msg .m-m{font-size:var(--t-xs);color:var(--text-3);margin-top:4px;display:flex;gap:var(--s2);align-items:center}
+.todaymsg{border:1px solid var(--line-2);border-radius:var(--r-lg);padding:var(--s3) var(--s4);
+ display:flex;gap:var(--s3);align-items:center;background:var(--surface)}
+.shell{max-width:600px;margin:0 auto;padding:0 var(--s4)}
+.hdr{
+ position:sticky;top:0;z-index:40;max-width:600px;margin:0 auto;
+ padding:calc(var(--s3) + var(--sat)) var(--s4) var(--s3);
+ display:flex;align-items:center;gap:var(--s3);
+ background:var(--bg);
+}
+.hdr h1{font-size:var(--t-md);font-weight:650;letter-spacing:-.01em;line-height:1.1}
+.hdr .sub{font-size:var(--t-xs);color:var(--text-3);margin-top:1px}
+.hdr .mark{width:26px;height:26px;color:var(--text-2)}
+
+h2{font-size:var(--t-lg);font-weight:650;letter-spacing:-.015em;line-height:var(--lh-tight)}
+h3{font-size:var(--t-md);font-weight:600;letter-spacing:-.01em;line-height:var(--lh-snug)}
+.lede{font-size:var(--t-sm);color:var(--text-2);line-height:var(--lh-snug)}
+/* URGENCY, all four uses in one place.
+   1. the deadline inside a sentence   2. the same on the inverted card
+   3. a closing card's left edge       4. the seminar deadline row
+   Nothing else in this app is ever coloured. Progress, rewards, honours and
+   the syllabus stay monochrome on purpose: a student's own standing is not a
+   scoreboard, and nobody is ever ranked bottom here. */
+/* ── THEMES. A student picks their own; nobody is sorted into one. Only the
+   ACCENT moves, which is the inverted card, the active tab and the ring.
+   --urgent is deliberately absent from every theme below: if the signal
+   colour changes with the decoration, it stops being a signal. ── */
+html[data-theme="sunset"]  {--accent:#ff8a3d;--on-accent:#241000;--theme2:#ffd166}
+html[data-theme="neon"]    {--accent:#ff5fa2;--on-accent:#2b0016;--theme2:#f3ff5c}
+html[data-theme="electric"]{--accent:#4da3ff;--on-accent:#00182e;--theme2:#ff9f45}
+html[data-theme="mono"]    {--accent:#f7f7f7;--on-accent:#0d0d0d;--theme2:#f7f7f7}
+
+/* THE SAME COLOUR ON WHITE IS A DIFFERENT COLOUR. Pink at #ff5fa2 reads 2.4:1
+   on a white card, so it fails as text the moment a student turns on light
+   mode. Each theme keeps its identity and drops its lightness until it clears
+   the 4.5 floor. Mono simply inverts: white ink on black becomes black on white. */
+html[data-mode="light"][data-theme="mono"]    {--accent:#121212;--on-accent:#ffffff;--theme2:#121212}
+html[data-mode="light"][data-theme="sunset"]  {--accent:#b34700;--on-accent:#ffffff;--theme2:#8a5a00}
+html[data-mode="light"][data-theme="neon"]    {--accent:#b8185c;--on-accent:#ffffff;--theme2:#5f6b00}
+html[data-mode="light"][data-theme="electric"]{--accent:#0059b8;--on-accent:#ffffff;--theme2:#b34700}
+
+/* AND THE SAME AGAIN FOR AUTO, which is the default nobody chooses. A student
+   whose phone is on light and who has touched nothing gets here, and until now
+   got mono's WHITE accent on a white page: 3.16:1, the worst combination in
+   the app, on the most common setting. The block above only fires when light
+   is picked by hand. Duplicated rather than shared because CSS has no way to
+   say "this selector or that one" across a media query. Change both. */
+@media(prefers-color-scheme:light){
+ html:not([data-mode="dark"])[data-theme="mono"]    {--accent:#121212;--on-accent:#ffffff;--theme2:#121212}
+ html:not([data-mode="dark"])[data-theme="sunset"]  {--accent:#b34700;--on-accent:#ffffff;--theme2:#8a5a00}
+ html:not([data-mode="dark"])[data-theme="neon"]    {--accent:#b8185c;--on-accent:#ffffff;--theme2:#5f6b00}
+ html:not([data-mode="dark"])[data-theme="electric"]{--accent:#0059b8;--on-accent:#ffffff;--theme2:#b34700}
+ html:not([data-mode="dark"]){--urgent:#8a5a00}
+}
+.sw{width:100%;aspect-ratio:1;border-radius:var(--r-md);border:2px solid transparent;
+ display:block;position:relative}
+.sw[aria-pressed="true"]{border-color:var(--text)}
+.sw i{position:absolute;inset:22% 22% auto auto;width:34%;height:34%;border-radius:99px;display:block}
+.urgent{color:var(--urgent);font-weight:700}
+/* On a COLOURED accent card, amber measured 2.09 to 2.53 against a floor of
+   4.5, so urgency becomes a mark instead of a hue. On the BLACK AND WHITE card
+   amber reads at 5.53 and is the whole point, so mono keeps it. Applying the
+   chip to all four took the colour out of the default app, which is the one
+   Thulaib saw on his phone. */
+.primary .urgent{color:var(--on-accent);background:rgba(0,0,0,.16);
+ padding:1px 7px;border-radius:var(--r-sm);font-weight:750}
+html[data-theme="mono"] .primary .urgent{color:var(--urgent-on-light);
+ background:none;padding:0;font-weight:700}
+.card.closing{border-left:3px solid var(--urgent)}
+.meta{font-size:var(--t-xs);color:var(--text-3)}
+.sect-h{display:flex;align-items:baseline;gap:var(--s3);margin:var(--s6) 0 var(--s3)}
+.sect-h h2{flex:1;min-width:0;font-size:var(--t-md)}
+
+/* ── SURFACES ───────────────────────────────────────────────────────── */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:var(--s4)}
+.stack>*+*{margin-top:var(--s3)}
+.list{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden}
+.list>*+*{border-top:1px solid var(--line)}
+.rowbtn{display:flex;align-items:center;gap:var(--s3);width:100%;padding:var(--s3) var(--s4);min-height:56px;
+ transition:background var(--m-fast) var(--ease)}
+.rowbtn:active{background:var(--surface-2)}
+.rowbtn .grow{flex:1;min-width:0}
+.rowbtn .chev{color:var(--text-3);width:18px;height:18px}
+
+/* ── CONTROLS ───────────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--s2);
+ font-size:var(--t-base);font-weight:600;padding:0 var(--s5);min-height:48px;
+ border-radius:var(--r-md);width:100%;text-align:center;
+ transition:transform var(--m-fast) var(--ease),opacity var(--m-fast) var(--ease)}
+.btn:active{transform:scale(.985)}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.btn-primary{background:var(--accent);color:var(--on-accent)}
+.btn-secondary{background:var(--surface-2);color:var(--text)}
+.btn-quiet{color:var(--text-2)}
+.btn-sm{min-height:40px;font-size:var(--t-sm);padding:0 var(--s4);width:auto}
+
+.chipbar{display:flex;gap:var(--s2);overflow-x:auto;scrollbar-width:none;padding-bottom:var(--s1);margin:0 calc(var(--s4)*-1);padding-inline:var(--s4)}
+.chipbar::-webkit-scrollbar{display:none}
+.chip{flex:none;font-size:var(--t-sm);font-weight:550;padding:var(--s2) var(--s3);min-height:36px;
+ border-radius:var(--r-pill);background:var(--surface-2);color:var(--text-2);
+ display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
+
+.seg{display:flex;gap:2px;background:var(--surface-2);border-radius:var(--r-md);padding:3px}
+.seg button{flex:1;text-align:center;font-size:var(--t-sm);font-weight:600;min-height:38px;
+ border-radius:calc(var(--r-md) - 3px);color:var(--text-2);
+ transition:background var(--m-fast) var(--ease),color var(--m-fast) var(--ease)}
+.seg button[aria-selected="true"]{background:var(--accent);color:var(--on-accent);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+
+input,select,textarea{font:inherit;color:var(--text);background:var(--surface-2);
+ border:1px solid var(--line-2);border-radius:var(--r-md);padding:var(--s3);width:100%;min-height:48px}
+input:focus-visible,select:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+label{display:block;font-size:var(--t-sm);font-weight:600;margin-bottom:var(--s2)}
+
+/* ── PRIMARY TASK ───────────────────────────────────────────────────── */
+.primary{background:var(--accent);color:var(--on-accent);border-radius:var(--r-xl);padding:var(--s5);border:none}
+.primary .kind{display:inline-flex;align-items:center;gap:6px;font-size:var(--t-xs);font-weight:650;
+ letter-spacing:.02em;opacity:.62;margin-bottom:var(--s2)}
+.primary h2{font-size:var(--t-2xl);letter-spacing:-.02em;margin-bottom:var(--s2)}
+.primary .why{font-size:var(--t-sm);opacity:.66;line-height:var(--lh-snug)}
+.primary .btn{margin-top:var(--s5);background:var(--btn-ink);color:var(--btn-on)}
+/* THE ACTION BUTTON IS NEVER THE THEME. It was background:var(--on-accent)
+   with color:var(--accent), so in Electric it came out navy-on-blue and in
+   Neon dark-plum-on-pink. The one control a student must be able to hit is
+   not the place to express a colour choice. Black on a light card, white on a
+   dark one, in every theme, forever. */
+:root{--btn-ink:#0d0d0d;--btn-on:#f7f7f7}
+.primary .dot{width:3px;height:3px;border-radius:50%;background:currentColor;opacity:.5;flex:none}
+
+/* block, not inline: these are stacked lines inside a button, and inline
+   spans silently run the title into the subtitle ("NextSaturday 18 Jul") */
+.tt{display:block;font-size:var(--t-base);font-weight:550;line-height:var(--lh-snug)}
+.tw{display:block;font-size:var(--t-xs);color:var(--text-3);margin-top:3px;line-height:var(--lh-snug)}
+
+/* ── STATUS (never colour alone) ────────────────────────────────────── */
+.stat{display:inline-flex;align-items:center;gap:5px;font-size:var(--t-xs);color:var(--text-3)}
+.stat svg{width:13px;height:13px}
+.stat.on{color:var(--text-2)}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:var(--t-xs);font-weight:600;
+ padding:3px 9px;border-radius:var(--r-pill);background:var(--surface-2);color:var(--text-2)}
+.pill.solid{background:var(--accent);color:var(--on-accent)}
+
+/* ── SYLLABUS ───────────────────────────────────────────────────────── */
+.unit-h{display:flex;align-items:center;gap:var(--s3);width:100%;padding:var(--s3) var(--s4);min-height:52px}
+.unit-h .un{font-size:var(--t-base);font-weight:600;flex:1;min-width:0}
+.unit-h .uc{font-size:var(--t-xs);color:var(--text-3)}
+.unit-h .caret{transition:transform var(--m-base) var(--ease);color:var(--text-3);width:18px;height:18px}
+.unit-h[aria-expanded="true"] .caret{transform:rotate(90deg)}
+.topic{display:flex;align-items:center;gap:var(--s3);width:100%;padding:var(--s3) var(--s4);min-height:60px;
+ transition:background var(--m-fast) var(--ease)}
+.topic:active{background:var(--surface-2)}
+.topic .tn{font-size:var(--t-base);font-weight:500;line-height:var(--lh-snug)}
+.topic.future .tn{color:var(--text-3);font-weight:400}
+.topic .tsub{display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap;margin-top:3px}
+.conf{width:32px;height:32px;flex:none;border-radius:50%;border:1.5px solid var(--line-2);
+ display:flex;align-items:center;justify-content:center;color:var(--text-3);
+ transition:background var(--m-fast) var(--ease)}
+.conf svg{width:15px;height:15px}
+.conf.got{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.conf.shaky{border-color:var(--text-2);color:var(--text)}
+.conf.lost{border-style:dashed;border-color:var(--text-2);color:var(--text-2)}
+
+/* ── TASK FLOW (full screen, not a trap) ────────────────────────────── */
+.flow{position:fixed;inset:0;z-index:70;background:var(--bg);display:none;flex-direction:column;overflow-y:auto}
+/* ══ QUIZ GAME. Its own screen: nothing else on it, big taps, one thumb. ══ */
+.qg{position:fixed;inset:0;z-index:80;background:var(--bg);display:none;flex-direction:column;padding:calc(var(--s4) + var(--sat)) var(--s4) calc(var(--s4) + var(--sab));overflow-y:auto}
+.qg.on{display:flex}
+.qg-top{display:flex;align-items:center;gap:var(--s3);margin-bottom:var(--s4);flex:none}
+.qg-top .m{font-size:var(--t-sm);color:var(--muted);font-weight:600}
+.qg-x{margin-left:auto;background:var(--surface-2);border-radius:var(--r-pill);padding:7px 13px;font-size:var(--t-sm);font-weight:600}
+.qg-mid{flex:1;display:flex;flex-direction:column;justify-content:center;gap:var(--s4)}
+.qg-q{font-family:'Poppins';font-weight:800;font-size:clamp(20px,5.4vw,30px);line-height:1.25}
+.qg-opts{display:grid;gap:var(--s3)}
+.qg-opt{display:flex;gap:var(--s3);align-items:center;text-align:left;background:var(--surface);border:2px solid var(--line);border-radius:var(--r-lg);padding:var(--s4);font-size:var(--t-md);font-weight:600;min-height:66px;width:100%;transition:transform .12s,border-color .12s,background .12s}
+.qg-opt:active{transform:scale(.98)}
+.qg-opt .lt{width:34px;height:34px;flex:none;border-radius:10px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-weight:800}
+.qg-opt.picked{border-color:var(--ink);background:var(--surface-2)}
+.qg-opt.right{border-color:#16a34a;background:rgba(22,163,74,.12)}
+.qg-opt.wrong{border-color:#c0392b;background:rgba(192,57,43,.1)}
+.qg-opt[disabled]{opacity:.55}
+.qg-clock{font-family:'Poppins';font-weight:800;font-size:38px;line-height:1}
+.qg-bar{height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.qg-bar i{display:block;height:100%;background:var(--ink);transition:width .95s linear}
+.qg-big{font-family:'Poppins';font-weight:800;font-size:clamp(26px,7vw,40px);line-height:1.15}
+.qg-av{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s3)}
+.qg-av button{aspect-ratio:1;border-radius:var(--r-lg);border:2px solid var(--line);background:var(--surface);display:flex;align-items:center;justify-content:center}
+.qg-av button.on{border-color:var(--ink);background:var(--surface-2)}
+.qg-av svg{width:26px;height:26px}
+.qg-pin{width:100%;font-family:'Poppins';font-weight:800;font-size:30px;letter-spacing:8px;text-align:center}
+.qg-chipline{display:flex;gap:var(--s2);flex-wrap:wrap}
+.qg-chip{background:var(--surface-2);border-radius:var(--r-pill);padding:6px 12px;font-size:var(--t-sm);font-weight:600;display:flex;gap:6px;align-items:center}
+.qg-chip svg{width:15px;height:15px}
+
+/* ── MCQ PAPER ───────────────────────────────────────────────────────
+   A whole paper on a phone: the head and the foot stay put, the paper
+   scrolls between them. Right and wrong are a tick, a cross and a word,
+   never a colour: --urgent is still spent on one thing only, the clock
+   in its last minute. */
+.mq{position:fixed;inset:0;z-index:85;background:var(--bg);display:none;flex-direction:column;
+ padding:calc(var(--s3) + var(--sat)) var(--s4) calc(var(--s3) + var(--sab))}
+.mq.on{display:flex}
+.mq-top{display:flex;align-items:center;gap:var(--s3);flex:none;min-height:40px}
+.mq-top .m{font-size:var(--t-sm);color:var(--text-2);font-weight:600;flex:1;min-width:0;
+ overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mq-clock{font-family:'Poppins';font-weight:800;font-size:var(--t-lg);font-variant-numeric:tabular-nums}
+.mq-clock.urgent{color:var(--urgent)}
+.mq-bar{height:4px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin:var(--s2) 0 var(--s3);flex:none}
+.mq-bar i{display:block;height:100%;background:var(--text-3);transition:width 1s linear}
+.mq-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:var(--s3)}
+.mq-foot{flex:none;display:flex;gap:var(--s2);padding-top:var(--s3)}
+.mq-meta{display:flex;align-items:center;gap:var(--s3);font-size:var(--t-xs);color:var(--text-3)}
+.mq-flagbtn{margin-left:auto;background:var(--surface-2);border-radius:var(--r-pill);padding:6px 12px;
+ font-size:var(--t-xs);font-weight:600;color:var(--text-2)}
+.mq-flagbtn.on{background:var(--accent);color:var(--on-accent)}
+.mq-q{font-size:var(--t-lg);font-weight:600;line-height:var(--lh-snug);margin:var(--s3) 0}
+.mq-img{width:100%;max-height:42vh;object-fit:contain;border-radius:var(--r-md);background:var(--surface-2);
+ margin-bottom:var(--s3);display:block}
+.mq-opts{display:grid;gap:var(--s2)}
+.mq-opt{display:flex;gap:var(--s3);align-items:center;text-align:left;width:100%;background:var(--surface);
+ border:2px solid var(--line);border-radius:var(--r-lg);padding:var(--s3) var(--s4);min-height:56px;
+ transition:border-color var(--m-fast) var(--ease),background var(--m-fast) var(--ease)}
+.mq-opt:active{transform:scale(.99)}
+.mq-opt .lt{width:28px;height:28px;flex:none;border-radius:8px;background:var(--surface-2);
+ display:flex;align-items:center;justify-content:center;font-weight:700;font-size:var(--t-sm)}
+.mq-opt .ot{font-size:var(--t-base);font-weight:500;line-height:var(--lh-snug)}
+.mq-opt.picked{border-color:var(--accent);background:var(--surface-2)}
+.mq-opt.picked .lt{background:var(--accent);color:var(--on-accent)}
+.mq-pal{display:grid;grid-template-columns:repeat(6,1fr);gap:var(--s2)}
+.mq-pal button{position:relative;aspect-ratio:1;border-radius:var(--r-md);border:1px solid var(--line-2);
+ background:var(--surface);font-weight:650;font-size:var(--t-sm);color:var(--text-2)}
+.mq-pal button.done{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.mq-pal button.now{outline:2px solid var(--focus);outline-offset:1px}
+.mq-pal button.flag::after{content:'';position:absolute;top:5px;right:5px;width:6px;height:6px;
+ border-radius:50%;background:currentColor}
+.mq-key{display:flex;gap:var(--s4);margin-top:var(--s4);font-size:var(--t-xs);color:var(--text-3);flex-wrap:wrap}
+.mq-key span{display:inline-flex;align-items:center;gap:6px}
+.mq-key i{position:relative;width:14px;height:14px;border-radius:5px;border:1px solid var(--line-2);display:inline-block}
+.mq-key i.done{background:var(--accent);border-color:var(--accent)}
+.mq-key i.flag::after{content:'';position:absolute;top:2px;right:2px;width:5px;height:5px;border-radius:50%;background:var(--text-2)}
+.mq-score{text-align:center;padding:var(--s6) 0 var(--s4)}
+.mq-score .big{font-family:'Poppins';font-weight:800;font-size:44px;line-height:1}
+.mq-score .big span{font-size:22px;color:var(--text-3)}
+.mq-score .sub{font-size:var(--t-sm);color:var(--text-2);margin-top:var(--s2);line-height:var(--lh-snug)}
+.mq-rv{border:1px solid var(--line);border-radius:var(--r-md);padding:var(--s3) var(--s4);margin-bottom:var(--s2)}
+.mq-rv .h{display:flex;align-items:center;gap:var(--s2);font-size:var(--t-xs);color:var(--text-3)}
+.mq-rv .h .n{width:20px;height:20px;flex:none;border-radius:6px;background:var(--surface-2);
+ display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--text-2)}
+.mq-rv .h .mk{display:inline-flex;align-items:center;gap:5px;margin-left:auto;font-weight:650;color:var(--text-2)}
+.mq-rv .h .mk svg{width:13px;height:13px}
+.mq-rv .qt{font-size:var(--t-base);font-weight:550;line-height:var(--lh-snug);margin:var(--s2) 0}
+.mq-rv .ans{font-size:var(--t-sm);color:var(--text-2);margin-top:3px;line-height:var(--lh-snug)}
+.mq-rv .ans b{font-weight:650;color:var(--text-3);font-size:var(--t-xs);text-transform:uppercase;letter-spacing:.4px;margin-right:6px}
+.mq-rv .why{font-size:var(--t-sm);color:var(--text-3);margin-top:var(--s2);padding-top:var(--s2);
+ border-top:1px solid var(--line);line-height:var(--lh)}
+.mq-rv .mq-img{max-height:28vh;margin-top:var(--s2)}
+.mq-brief{margin:var(--s3) 0 var(--s4);padding-left:var(--s5);font-size:var(--t-sm);color:var(--text-2);line-height:var(--lh)}
+.mq-brief li{margin-bottom:5px}
+
+/* ── UNIT WEIGHTAGE. Leon's read of where the marks are, sitting on the
+   syllabus a student is already reading. High yield is weight, not hue. ── */
+.wchip{display:inline-flex;align-items:center;font-size:10px;font-weight:700;letter-spacing:.01em;
+ padding:3px 7px;border-radius:var(--r-pill);background:var(--surface-2);color:var(--text-3);
+ border:1px solid var(--line-2);white-space:nowrap;flex:none}
+/* A CHIP MUST NOT COST THE UNIT ITS NAME. A chip, a share, a count and a
+   caret beside "Unit 7 · Operations and finance" ran the title to three
+   lines on a 390px phone; letting the row wrap only orphaned the caret
+   underneath. So the heading carries the verdict and nothing else — the
+   percentages are in the card directly above it, where they are ranked
+   and actually comparable. */
+.unit-h .un{flex:1 1 auto;min-width:0}
+.wchip.on{background:var(--accent);color:var(--on-accent);border-color:transparent}
+.wchip.low{background:none;border-color:transparent;color:var(--text-3);padding-inline:2px}
+.wshare{font-size:var(--t-xs);color:var(--text-3);font-weight:650;flex:none}
+.wmap .wmap-h{display:flex;align-items:baseline;gap:var(--s3);margin-bottom:var(--s2)}
+.wmap .wmap-h h2{flex:1;min-width:0;font-size:var(--t-md)}
+.wmap-list{margin-top:var(--s4)}
+.wmap-row{display:flex;align-items:center;gap:var(--s3);padding:var(--s2) 0}
+.wmap-u{display:flex;align-items:baseline;gap:var(--s2);width:56%;min-width:0}
+.wmap-u .n{font-family:'Poppins';font-weight:800;font-size:13px;line-height:1;width:14px;flex:none}
+.wmap-u .t{font-size:var(--t-sm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-2)}
+.wmap-row.hi .wmap-u .t{color:var(--text);font-weight:600}
+.wmap-bar{flex:1;min-width:40px;height:7px;border-radius:99px;background:var(--surface-2);overflow:hidden;min-width:0}
+.wmap-bar i{display:block;height:100%;border-radius:99px;background:var(--text-3)}
+.wmap-row.hi .wmap-bar i{background:var(--accent)}
+.wmap-v{width:34px;text-align:right;font-size:var(--t-xs);font-weight:700;font-variant-numeric:tabular-nums;flex:none}
+.wmap-note{font-size:var(--t-xs);color:var(--text-3);line-height:1.4;margin:0 0 var(--s3) 22px}
+
+/* essay template: the parts of a long answer, in order, with their marks */
+.es-q{font-size:var(--t-sm);line-height:var(--lh);border-left:3px solid var(--line-2);padding:var(--s2) var(--s3);margin:var(--s3) 0 var(--s4);color:var(--text)}
+.es-parts{list-style:none;margin:0 0 var(--s4);padding:0}
+.es-parts li{display:grid;grid-template-columns:26px 1fr auto;gap:var(--s2) var(--s3);padding:var(--s3) 0;border-top:1px solid var(--line)}
+.es-parts li:first-child{border-top:none}
+.es-parts .n{width:26px;height:26px;border-radius:var(--r-sm);background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:var(--t-xs);font-weight:700}
+.es-parts .h{font-size:var(--t-base);font-weight:650;line-height:var(--lh-snug);align-self:center}
+.es-parts .m{font-size:var(--t-xs);font-weight:650;color:var(--text-2);align-self:center;white-space:nowrap}
+.es-parts .t{grid-column:2 / 4;font-size:var(--t-sm);color:var(--text-2);line-height:var(--lh);white-space:pre-line}
+.es-notes{font-size:var(--t-sm);color:var(--text-2);line-height:var(--lh);background:var(--surface-2);border-radius:var(--r-md);padding:var(--s3) var(--s4);white-space:pre-line;margin-bottom:var(--s4)}
+/* five sections no longer fit a 390px row, so the bar scrolls rather than
+   squeezing "Recordings" into three letters */
+.seg{overflow-x:auto;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+.seg button{flex:1 0 auto;padding:0 11px;white-space:nowrap}
+.flow.on{display:flex;animation:flowIn var(--m-base) var(--ease)}
+@keyframes flowIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.flow-top{position:sticky;top:0;z-index:2;background:var(--bg);
+ padding:calc(var(--s3) + var(--sat)) var(--s4) var(--s3);display:flex;align-items:center;gap:var(--s3)}
+.flow-top .ic-btn{width:40px;height:40px;border-radius:var(--r-pill);display:flex;align-items:center;justify-content:center;
+ background:var(--surface-2);color:var(--text);flex:none}
+.flow-prog{flex:1;height:3px;background:var(--surface-2);border-radius:var(--r-pill);overflow:hidden}
+.flow-prog i{display:block;height:100%;background:var(--accent);border-radius:var(--r-pill);
+ transition:width var(--m-slow) var(--ease)}
+.flow-body{flex:1;max-width:600px;width:100%;margin:0 auto;padding:var(--s4) var(--s4) var(--s10)}
+.flow-foot{position:sticky;bottom:0;background:var(--bg);max-width:600px;width:100%;margin:0 auto;
+ padding:var(--s3) var(--s4) calc(var(--s4) + var(--sab));border-top:1px solid var(--line)}
+.flow h2{font-size:var(--t-2xl);letter-spacing:-.02em;margin-bottom:var(--s2)}
+.qopt{display:flex;align-items:center;gap:var(--s3);width:100%;padding:var(--s4);min-height:60px;
+ border:1.5px solid var(--line-2);border-radius:var(--r-md);margin-top:var(--s3);
+ font-size:var(--t-base);line-height:var(--lh-snug);
+ transition:border-color var(--m-fast) var(--ease),background var(--m-fast) var(--ease)}
+.qopt .mk{width:24px;height:24px;flex:none;border-radius:50%;border:1.5px solid var(--line-2);
+ display:flex;align-items:center;justify-content:center;color:transparent}
+.qopt[aria-checked="true"]{border-color:var(--accent);background:var(--surface-2)}
+.qopt[aria-checked="true"] .mk{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.qopt[data-r="right"]{border-color:var(--text);background:var(--surface-2)}
+.qopt[data-r="wrong"]{border-style:dashed;border-color:var(--text-2)}
+.qopt[data-r="wrong"] .mk{background:transparent;border-color:var(--text-2);color:var(--text-2)}
+.qopt[data-r="right"] .mk{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.verdict{border-left:2px solid var(--accent);padding-left:var(--s3);margin-top:var(--s5)}
+.verdict .vt{font-size:var(--t-md);font-weight:650;margin-bottom:var(--s1)}
+.keyterm{display:flex;gap:var(--s3);padding:var(--s3) 0;border-top:1px solid var(--line)}
+.keyterm b{font-size:var(--t-sm);min-width:104px;flex:none}
+.keyterm span{font-size:var(--t-sm);color:var(--text-2)}
+.done-mark{width:56px;height:56px;border-radius:50%;background:var(--accent);color:var(--on-accent);
+ display:flex;align-items:center;justify-content:center;margin-bottom:var(--s4);
+ animation:pop var(--m-slow) var(--ease)}
+@keyframes pop{from{transform:scale(.8);opacity:0}to{transform:none;opacity:1}}
+
+/* ── SHEET ──────────────────────────────────────────────────────────── */
+.scrim{position:fixed;inset:0;background:var(--scrim);z-index:80;display:none;align-items:flex-end;justify-content:center}
+.scrim.on{display:flex;animation:fade var(--m-fast) var(--ease)}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.sheet{background:var(--surface);border-radius:var(--r-xl) var(--r-xl) 0 0;width:100%;max-width:600px;
+ padding:var(--s3) var(--s4) calc(var(--s5) + var(--sab));max-height:88vh;overflow-y:auto;
+ animation:up var(--m-base) var(--ease)}
+@keyframes up{from{transform:translateY(100%)}to{transform:none}}
+.grabber{width:36px;height:4px;border-radius:var(--r-pill);background:var(--line-2);margin:0 auto var(--s4)}
+.sheet h3{margin-bottom:var(--s1)}
+
+/* ── FEEDBACK ───────────────────────────────────────────────────────── */
+.toast{position:fixed;left:50%;bottom:calc(76px + var(--sab));transform:translateX(-50%) translateY(10px);
+ z-index:90;background:var(--surface-3);color:var(--text);border:1px solid var(--line-2);
+ border-radius:var(--r-md);padding:var(--s3) var(--s4);font-size:var(--t-sm);font-weight:550;
+ display:flex;align-items:center;gap:var(--s4);max-width:calc(100vw - 32px);
+ opacity:0;pointer-events:none;transition:opacity var(--m-base) var(--ease),transform var(--m-base) var(--ease);
+ box-shadow:0 8px 24px rgba(0,0,0,.24)}
+.toast.on{opacity:1;transform:translateX(-50%);pointer-events:auto}
+.toast button{font-weight:650;color:var(--text);text-decoration:underline;flex:none;min-height:32px}
+.banner{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-md);
+ padding:var(--s3);font-size:var(--t-sm);color:var(--text-2);display:flex;gap:var(--s3);align-items:flex-start}
+.offline-bar{position:fixed;top:var(--sat);left:0;right:0;z-index:65;background:var(--accent);color:var(--on-accent);
+ font-size:var(--t-xs);font-weight:650;text-align:center;padding:6px;display:none}
+.empty{text-align:center;padding:var(--s8) var(--s4)}
+.empty .ei{width:44px;height:44px;border-radius:50%;background:var(--surface-2);color:var(--text-2);
+ display:flex;align-items:center;justify-content:center;margin:0 auto var(--s4)}
+.skel{background:var(--surface-2);border-radius:var(--r-sm);animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+
+/* ── PROGRESS ───────────────────────────────────────────────────────── */
+.metric{display:flex;align-items:baseline;gap:var(--s2)}
+.metric b{font-size:var(--t-3xl);font-weight:680;letter-spacing:-.03em;line-height:1}
+.metric span{font-size:var(--t-sm);color:var(--text-2)}
+/* Visually hidden, still announced. The sparkline's numbers live in one of
+   these: without the RULE the sentence simply renders on screen, which is
+   how the first attempt shipped "Marks, oldest first: 65 per cent" as
+   visible body text (2026-08-20). A class with no rule is decoration. */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+ overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+/* The sparkline itself: colour comes from the parent, so it follows the
+   student's chosen theme like everything else. */
+.spark{display:block}
+.track{height:6px;background:var(--surface-2);border-radius:var(--r-pill);overflow:hidden}
+.track i{display:block;height:100%;background:var(--accent);border-radius:var(--r-pill);transition:width var(--m-slow) var(--ease)}
+.track.ghost i{background:var(--line-2)}
+.mile{display:flex;gap:var(--s3);align-items:flex-start;padding:var(--s3) 0}
+.mile .mn{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--line-2);flex:none;
+ display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:650;color:var(--text-3)}
+.mile.done .mn{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+
+/* ── TABS ───────────────────────────────────────────────────────────── */
+.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;display:flex;
+ max-width:600px;margin:0 auto;background:var(--bg);border-top:1px solid var(--line);
+ padding-bottom:var(--sab)}
+.tabs button{flex:1;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+ color:var(--text-3);font-size:11px;font-weight:600;text-align:center;
+ transition:color var(--m-fast) var(--ease)}
+.tabs button svg{width:22px;height:22px}
+.tabs button[aria-selected="true"]{color:var(--accent)}
+/* ── SPLASH. It replaces a blank launch, it must never become one. Cold start
+   only, time-boxed, tap anywhere to skip. ── */
+.splash{position:fixed;inset:0;z-index:200;background:var(--bg);color:var(--text);
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ padding:var(--s6);text-align:center;transition:opacity var(--m-slow) var(--ease)}
+.splash.gone{opacity:0;pointer-events:none}
+.sp-mark{width:60px;height:60px;color:var(--text);margin-bottom:var(--s5)}
+.sp-name{font-size:var(--t-sm);font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+ color:var(--text-3);margin-bottom:var(--s6)}
+.sp-line{font-size:var(--t-xl);font-weight:600;line-height:1.35;letter-spacing:-.015em;max-width:19ch}
+.sp-foot{position:absolute;bottom:calc(var(--s8) + var(--sab));font-size:var(--t-xs);color:var(--text-3)}
+@media(prefers-reduced-motion:no-preference){
+ .sp-mark{animation:spUp .45s var(--ease) both}
+ .sp-name{animation:spUp .45s var(--ease) .06s both}
+ .sp-line{animation:spUp .5s var(--ease) .12s both}
+}
+@keyframes spUp{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+
+.screen{display:none;animation:sIn var(--m-base) var(--ease)}
+.screen.on{display:block}
+@keyframes sIn{from{opacity:0}to{opacity:1}}
+
+@media(max-width:340px){
+ .primary h2{font-size:var(--t-xl)}
+ .metric b{font-size:var(--t-2xl)}
+ .tabs button{font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){
+ *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+  transition-duration:.01ms!important}
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   v2 · DEPTH. Feedback was that the app looked plain. The answer is not
+   paint — the palette below is the same one — it is hierarchy: one dark
+   object per screen that outranks everything else, real elevation, and
+   numbers big enough to read at arm's length.
+
+   Three gradients, named, used everywhere and nowhere else:
+     Obsidian  the hero card, the dock, a selected tile
+     Paper     every ordinary surface, so a card lifts without a shadow
+     Halo      a press, so a tap feels like it landed
+   A 3% grain sits over the large dark fields. Without it a 160° ramp
+   bands into visible steps on a cheap LCD, which is most of the class.
+   ══════════════════════════════════════════════════════════════════════ */
+:root{
+ --grad-obsidian:
+   radial-gradient(120% 140% at 12% -18%, rgba(255,255,255,.17) 0%, rgba(255,255,255,0) 58%),
+   linear-gradient(160deg,#1f1f21 0%,#09090a 100%);
+ --grad-paper: linear-gradient(160deg, var(--surface) 0%, var(--surface-2) 100%);
+ --grain:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/></filter><rect width='80' height='80' filter='url(%23n)'/></svg>");
+ --lift:0 1px 2px rgba(0,0,0,.30), 0 12px 34px rgba(0,0,0,.34);
+ --lift-sm:0 1px 2px rgba(0,0,0,.22), 0 5px 16px rgba(0,0,0,.20);
+ --dock-h:58px;
+ --on-dark:#f7f7f7;
+}
+@media(prefers-color-scheme:light){
+ :root:not([data-mode="dark"]){
+  --lift:0 1px 2px rgba(16,16,20,.10), 0 10px 28px rgba(16,16,20,.14);
+  --lift-sm:0 1px 2px rgba(16,16,20,.06), 0 4px 12px rgba(16,16,20,.08);
+ }
+}
+:root[data-mode="light"]{
+ --lift:0 1px 2px rgba(16,16,20,.10), 0 10px 28px rgba(16,16,20,.14);
+ --lift-sm:0 1px 2px rgba(16,16,20,.06), 0 4px 12px rgba(16,16,20,.08);
+}
+
+/* ── THE HERO. One per screen, and only one. The countdown was already the
+   first thing on Today; now it looks like the first thing. ── */
+.hero{
+ position:relative; overflow:hidden; border-radius:var(--r-xl);
+ background:var(--grad-obsidian); color:var(--on-dark);
+ padding:var(--s5); box-shadow:var(--lift);
+ display:flex; align-items:center; gap:var(--s4);
+}
+.hero::after{ content:''; position:absolute; inset:0; pointer-events:none;
+ opacity:.045; background-image:var(--grain); }
+.hero>*{ position:relative; z-index:1; }
+/* the exam card keeps its markup and its tests; inside the hero it simply
+   stops being a card and becomes the left-hand column */
+.hero .examclock{ background:none; border:none; padding:0; text-align:left; flex:1; min-width:0; }
+.hero .ec-lbl{ color:rgba(255,255,255,.52); }
+.hero .ec-row{ justify-content:flex-start; }
+.hero .ec-t{ background:rgba(255,255,255,.09); }
+.hero .ec-solo{ background:none; }
+.hero .ec-n{ color:#fff; }
+.hero .ec-solo .ec-n{ font-size:46px; }
+.hero .ec-l{ color:rgba(255,255,255,.64); }
+.hero .ec-when{ color:rgba(255,255,255,.44); }
+.hero .ec-say{ color:#fff; }
+@media(max-width:340px){ .hero{ flex-direction:column; align-items:flex-start; } }
+
+/* ── THE RING. Topics shown in a check, out of topics covered. A real
+   number the app already had, finally given a shape. ── */
+.ring{ position:relative; width:86px; height:86px; flex:none; }
+.ring svg{ transform:rotate(-90deg); display:block; }
+.ring .bg{ stroke:rgba(255,255,255,.15); }
+.ring .fg{ stroke:#fff; stroke-linecap:round;
+ transition:stroke-dashoffset 1100ms cubic-bezier(.16,1,.3,1); }
+.ring .mid{ position:absolute; inset:0; display:flex; flex-direction:column;
+ align-items:center; justify-content:center; text-align:center; }
+.ring .v{ font-size:21px; font-weight:750; line-height:1; letter-spacing:-.02em;
+ font-variant-numeric:tabular-nums; color:#fff; }
+.ring .v i{ font-style:normal; font-size:11px; font-weight:600; opacity:.6; }
+.ring .k{ font-size:8.5px; font-weight:650; letter-spacing:.1em; text-transform:uppercase;
+ color:rgba(255,255,255,.52); margin-top:3px; }
+
+/* ── THE DOCK. Was four loose icons on a hairline; now one object that
+   floats, with the active item riding in a pill. You can see where you
+   are from across the room, which is most of what "clearer" meant. ── */
+.tabs{
+ position:fixed; left:var(--s4); right:var(--s4);
+ bottom:calc(var(--s3) + var(--sab));
+ z-index:50; max-width:calc(600px - var(--s4) * 2); margin:0 auto;
+ display:flex; gap:0; padding:5px;
+ border:none; border-radius:var(--r-pill);
+ background:var(--grad-obsidian); box-shadow:var(--lift);
+}
+.tabs .pill{
+ position:absolute; top:5px; bottom:5px; left:0; width:0;
+ border-radius:var(--r-pill); background:#f7f7f7; pointer-events:none;
+ box-shadow:0 2px 10px rgba(0,0,0,.28);
+ transition:transform 420ms cubic-bezier(.16,1,.3,1), width 420ms cubic-bezier(.16,1,.3,1);
+}
+.tabs button{
+ position:relative; z-index:1; flex:1 1 0; min-width:0; min-height:48px;
+ display:flex; flex-direction:row; align-items:center; justify-content:center; gap:7px;
+ border-radius:var(--r-pill); color:rgba(255,255,255,.55);
+ font-size:12.5px; font-weight:650; letter-spacing:-.01em;
+ transition:color 260ms var(--ease);
+}
+.tabs button svg{ width:21px; height:21px; flex:none; }
+.tabs button .lbl{ max-width:0; overflow:hidden; white-space:nowrap; opacity:0;
+ transition:max-width 300ms var(--ease), opacity 200ms var(--ease); }
+.tabs button[aria-selected="true"]{ color:#0d0d0d; flex-grow:1.75; }
+.tabs button[aria-selected="true"] .lbl{ max-width:92px; opacity:1; }
+.tabs button:active svg{ transform:scale(.9); }
+.tabs button svg{ transition:transform 180ms var(--ease); }
+/* the dock floats, so the page has to end above it */
+.shell{ padding-bottom:calc(var(--dock-h) + var(--s8) + var(--sab)); }
+
+/* ── PRACTICE HUB. Three tiles, and the selected one goes obsidian so the
+   list underneath always has a visible owner. ── */
+.ph-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:var(--s2); }
+.ph{
+ position:relative; overflow:hidden; text-align:left; min-height:96px;
+ border-radius:var(--r-lg); padding:var(--s3);
+ display:flex; flex-direction:column; justify-content:space-between;
+ background:var(--grad-paper); border:1px solid var(--line); color:var(--text);
+ transition:transform 180ms var(--ease), box-shadow 220ms var(--ease);
+}
+.ph:active{ transform:scale(.97); }
+.ph .n{ font-size:27px; font-weight:750; line-height:1; letter-spacing:-.035em;
+ font-variant-numeric:tabular-nums; }
+.ph .l{ font-size:var(--t-xs); font-weight:700; letter-spacing:-.01em; }
+.ph .s{ font-size:10px; color:var(--text-3); margin-top:2px; line-height:1.25; }
+/* SELECTED INVERTS, exactly like a chip does. Obsidian was the first idea and
+   it was wrong: on a black screen the selected tile came out DARKER than the
+   others and the selection read as a hole. --accent already flips with the
+   mode, so the chosen tile is white at night and black in daylight. */
+.ph[aria-selected="true"]{
+ background:var(--accent); color:var(--on-accent); border-color:transparent;
+ background-image:linear-gradient(158deg, rgba(255,255,255,.10) 0%, rgba(0,0,0,.07) 100%);
+ box-shadow:var(--lift-sm);
+}
+.ph[aria-selected="true"] .s{ color:var(--on-accent); opacity:.62; }
+
+/* ── UNIT TINTS. The only colour in the app besides --urgent, and it is
+   wayfinding, not decoration: a 3px spine at full strength and a wash
+   that fades out before the text starts. Six units, one hue each. ── */
+.u1{ --tint:#5B7FA6; --wash:rgba(91,127,166,.13); }
+.u2{ --tint:#6E9469; --wash:rgba(110,148,105,.13); }
+.u3{ --tint:#A8794F; --wash:rgba(168,121,79,.13); }
+.u4{ --tint:#8B6B96; --wash:rgba(139,107,150,.13); }
+.u5{ --tint:#4F8C8C; --wash:rgba(79,140,140,.13); }
+.u6{ --tint:#A2616E; --wash:rgba(162,97,110,.13); }
+.spined{ border-left:3px solid var(--tint,var(--line-2));
+ background-image:linear-gradient(90deg,var(--wash,transparent),rgba(0,0,0,0) 48%); }
+.list>.spined+.spined{ border-top-color:var(--line); }
+
+/* ── SURFACES. Same colours, a ramp instead of a flat fill, and a real
+   shadow on the things that are meant to sit above the page. ── */
+.card,.list,.todaymsg{ background-image:var(--grad-paper); box-shadow:var(--lift-sm); }
+/* A CARD INSIDE A DARK PANEL IS NOT A CARD. It has no fill of its own there,
+   and a box-shadow on a transparent box still paints OUTSIDE it — which
+   darkened the hero everywhere except behind the countdown and made the
+   number look like it was sitting on a lighter tile. */
+.hero .card,.hero .examclock,.pstat .card,.primary .card{
+ box-shadow:none; background-image:none; background-color:transparent; }
+/* THE PRIMARY CARD KEEPS ITS OWN COLOUR. It was tempting to make this
+   obsidian too, but in dark mode that puts two near-black blocks on top of
+   each other and the hierarchy disappears — and the app has a rule, with a
+   test behind it, that the action button looks the same in every theme.
+   So: the same fill, a ramp across it for depth, and a real shadow. */
+.primary{
+ position:relative; overflow:hidden; box-shadow:var(--lift);
+ background-image:linear-gradient(158deg, rgba(255,255,255,.10) 0%, rgba(0,0,0,.07) 100%);
+}
+.primary>*{ position:relative; z-index:1; }
+.primary h2{ font-size:26px; letter-spacing:-.03em; line-height:1.12; }
+
+/* ── PROGRESS, read as a report. One dark panel holding the two numbers
+   that describe a student, then the detail underneath in plain rows. ── */
+.pstat{
+ position:relative; overflow:hidden; border-radius:var(--r-xl);
+ background:var(--grad-obsidian); color:var(--on-dark);
+ padding:var(--s5); box-shadow:var(--lift);
+}
+.pstat::after{ content:''; position:absolute; inset:0; opacity:.045;
+ background-image:var(--grain); pointer-events:none; }
+.pstat>*{ position:relative; z-index:1; }
+.pstat .row{ display:flex; gap:var(--s5); }
+.pstat .b{ flex:1; min-width:0; }
+.pstat .n{ font-size:38px; font-weight:750; line-height:1; letter-spacing:-.035em;
+ font-variant-numeric:tabular-nums; }
+.pstat .n i{ font-style:normal; font-size:17px; opacity:.55; font-weight:650; }
+.pstat .k{ font-size:var(--t-xs); color:rgba(255,255,255,.58); margin-top:var(--s2);
+ line-height:1.3; }
+.pstat .track{ background:rgba(255,255,255,.16); margin-top:var(--s4); }
+.pstat .track i{ background:#fff; }
+
+/* ── MOTION. 180 ms on a press, a longer easing on anything that travels.
+   Nothing bounces: at seventeen, fussy reads as cheap. ── */
+.rowbtn:active{ transform:scale(.995); }
+.card:active{ }
+@media(prefers-reduced-motion:no-preference){
+ .screen.enter>*{ animation:v2rise 380ms cubic-bezier(.16,1,.3,1) both; }
+ @keyframes v2rise{ from{ opacity:0; transform:translateY(9px); } to{ opacity:1; transform:none; } }
+}
+@media(prefers-reduced-motion:reduce){
+ .ring .fg,.tabs .pill{ transition:none; }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   PARENT APP — the only styles that are not the student app's.
+   Everything above this line is the student stylesheet, copied whole and
+   unedited, so the two apps cannot drift: same tokens, same cards, same
+   dock, same light and dark. When the student app's design changes, this
+   block is the only thing that has to be reviewed.
+
+   ONE ADDITION: colour with a job. The student app is monochrome because
+   a seventeen-year-old reads every screen every day. A parent opens this
+   once a month to answer one question — do I owe anything — so status
+   gets a hue: settled, due, overdue, and attended. Nothing else.
+   ══════════════════════════════════════════════════════════════════════ */
+:root{
+ --good:#4ac26b; --good-soft:rgba(74,194,107,.14);
+ --late:#e2564d;  --late-soft:rgba(226,86,77,.15);
+ --urgent-soft:rgba(240,169,43,.15);
+}
+@media(prefers-color-scheme:light){:root:not([data-mode="dark"]){
+ --good:#177a3a; --good-soft:rgba(23,122,58,.10);
+ --late:#b3241b;  --late-soft:rgba(179,36,27,.10);
+ --urgent-soft:rgba(138,90,0,.11);}}
+:root[data-mode="light"]{
+ --good:#177a3a; --good-soft:rgba(23,122,58,.10);
+ --late:#b3241b;  --late-soft:rgba(179,36,27,.10);
+ --urgent-soft:rgba(138,90,0,.11);}
+
+/* the status chip, in the three states the money can be in */
+.st{display:inline-flex;align-items:center;gap:6px;font-size:var(--t-xs);font-weight:700;
+ padding:4px 10px;border-radius:var(--r-pill);background:var(--surface-2);color:var(--text-2);
+ white-space:nowrap;flex:none}
+.st .dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+.st.paid{color:var(--good);background:var(--good-soft)}
+.st.due{color:var(--urgent);background:var(--urgent-soft)}
+.st.late{color:var(--late);background:var(--late-soft)}
+.hero .st{background:rgba(255,255,255,.12)}
+.hero .st.paid{color:#7ee2a0}.hero .st.due{color:#ffc766}.hero .st.late{color:#ff9a92}
+
+/* the fee hero borrows the student hero and stacks instead of splitting */
+.hero.fee{display:block}
+.hero .amt{font-family:'Poppins';font-weight:800;font-size:40px;line-height:1.05;
+ letter-spacing:-.035em;font-variant-numeric:tabular-nums;margin-top:var(--s3);color:#fff}
+.hero .amt .cur{font-size:19px;font-weight:700;opacity:.6;margin-right:6px;letter-spacing:0}
+.hero .say{font-size:var(--t-sm);color:rgba(255,255,255,.68);margin-top:var(--s2)}
+.hero .strip{display:flex;align-items:center;gap:var(--s2);margin-top:var(--s5);
+ padding:var(--s3) var(--s4);border-radius:var(--r-md);background:rgba(255,255,255,.07);
+ border:1px solid rgba(255,255,255,.12);font-size:var(--t-sm);color:#f7f7f7}
+.hero .strip .dot{width:9px;height:9px;border-radius:50%;background:var(--late);flex:none}
+.hero .top{display:flex;align-items:flex-start;gap:var(--s3)}
+.hero .lbl{font-size:var(--t-xs);font-weight:650;letter-spacing:.09em;text-transform:uppercase;
+ color:rgba(255,255,255,.55)}
+
+/* the register: attended is filled, absent is a dashed outline. Never red —
+   an absence is a fact for a parent to see, not an alarm. */
+.att{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin-top:var(--s4)}
+.att span{height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+ font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums;
+ background:var(--surface-2);border:1px solid var(--line);color:var(--text-3)}
+.att span.yes{background:var(--good-soft);border-color:transparent;color:var(--good)}
+.att span.no{background:transparent;border:1.5px dashed var(--line-2);color:var(--text-3)}
+.attkey{display:flex;gap:var(--s4);margin-top:var(--s3);font-size:var(--t-xs);
+ color:var(--text-3);flex-wrap:wrap}
+.attkey span{display:inline-flex;align-items:center;gap:6px}
+.attkey i{width:13px;height:13px;border-radius:4px;display:inline-block}
+.attkey i.yes{background:var(--good-soft);border:1px solid var(--good)}
+.attkey i.no{border:1.5px dashed var(--line-2)}
+
+/* The student's .ph tile holds a numeral. Ours holds an icon, and an SVG with
+   no width fills whatever box it is given — the first render had two bells the
+   size of the card. */
+.ph svg{width:22px;height:22px;flex:none;color:var(--text-2);stroke-width:1.8}
+.ph[aria-selected="true"] svg{color:inherit}
+
+/* the header carries the child, not the screen, so Sign out lives here */
+.hdr .out{font-size:var(--t-xs);font-weight:650;color:var(--text-2);padding:9px 14px;
+ border-radius:var(--r-pill);background:var(--surface-2);border:1px solid var(--line);flex:none}

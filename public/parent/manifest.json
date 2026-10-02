@@ -1,0 +1,17 @@
+{
+  "name": "BSWL Parent",
+  "short_name": "BSWL Parent",
+  "description": "Fees, attendance and progress for your child. Academy of Business Studies by Leon Fambeck.",
+  "id": "/parent",
+  "start_url": "/parent",
+  "scope": "/parent",
+  "display": "standalone",
+  "background_color": "#0d0d0d",
+  "theme_color": "#0d0d0d",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
