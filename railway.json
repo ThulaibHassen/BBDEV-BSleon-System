@@ -5,8 +5,7 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "preDeployCommand": ["/bin/sh -c \"node scripts/migrate.js && node scripts/seed.js\""],
-    "startCommand": "node server.js",
+    "startCommand": "/bin/sh -c \"node scripts/migrate.js && node scripts/seed.js && exec node server.js\"",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 120,
     "restartPolicyType": "ON_FAILURE",

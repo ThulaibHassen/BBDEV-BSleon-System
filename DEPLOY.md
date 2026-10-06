@@ -70,11 +70,14 @@ PDFs reach a phone only through a two-minute signed ticket, images through
 
 7. **app → Settings → Networking → Generate Domain** (or add your own domain,
    e.g. `bswl.businessbooster.lk`, and point a CNAME at it).
-8. **Deploy.** On every deploy Railway runs the pre-deploy step from
-   `railway.json` — `node scripts/migrate.js && node scripts/seed.js` — which
-   applies any new migrations and, the first time only, creates the owner
-   account, the default student-app config and the syllabus/weight rows.
-   Then it starts the server and waits for `/api/health` to answer.
+8. **Deploy.** Every time the container starts it runs
+   `node scripts/migrate.js && node scripts/seed.js` before the server
+   (`railway.json` start command, same as the Dockerfile `CMD`). That applies
+   any new migrations and, the first time only, creates the owner account,
+   the default student-app config and the syllabus/weight rows. Both are safe
+   to repeat. Railway then waits for `/api/health` to answer.
+   If the deploy log shows `[migrate] failed`, the server does not start —
+   read the line above it (usually a wrong `DATABASE_URL`).
 9. Open `https://<your-domain>/staff`, sign in with `SEED_OWNER_EMAIL` and the
    temporary password. You are asked to choose a new password straight away.
    Then delete `SEED_OWNER_PASSWORD` from Variables — it is never used again.

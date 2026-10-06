@@ -30,4 +30,7 @@ COPY --from=build --chown=app:app /app/scripts/dist ./scripts
 RUN mkdir -p .storage && chown app:app .storage
 USER app
 EXPOSE 3000
-CMD ["node", "server.js"]
+# On every start: apply pending migrations, run the idempotent seed, then serve.
+# Done here rather than in a platform pre-deploy hook, so a fresh database is
+# always ready before the first request, wherever the image runs.
+CMD ["/bin/sh", "-c", "node scripts/migrate.js && node scripts/seed.js && exec node server.js"]
