@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { fetcher, post, patch, del } from '@/lib/client/api';
-import { Empty, Ok, useToast } from '@/components/staff/ui';
+import { Empty, Modal, Ok, Panel, PanelHead, useToast } from '@/components/staff/ui';
 import { Icon } from '@/components/staff/Icon';
 import { useStaff } from '@/components/staff/StaffContext';
 import { COHORT_SHORT } from '@/lib/shared/constants';
@@ -250,39 +250,38 @@ export function AccessTab({ access, reload }: { access: AccessData; reload: () =
       {can('parents.manage') && <ParentAccess active={access.active} onCode={showCode} />}
 
       {panel && 'code' in panel && <CodeBox key={panel.code.code} c={panel.code} onDone={() => setPanel(null)} />}
-      {manage && (
-        <div className="card">
-          <div className="card-h">
-            <h3>{manage.name}</h3>
-            <span className="hint">
-              {manage.program} ({COHORT_SHORT[manage.cohort]}) · {manage.co}
-            </span>
-          </div>
-          <div className="card-b">
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8, fontSize: 12.5, marginBottom: 12 }}>
-              <div>
-                <span className="hint">Status</span>
-                <br />
-                <b>{statusLabel(manage)}</b>
+      {/* A side panel, like a student or an enquiry: it opens where you are looking,
+          instead of a card appended below the parent section, out of sight. */}
+      <Panel open={!!manage} onClose={() => setPanel(null)}>
+        {manage && (
+          <>
+            <PanelHead
+              title={manage.name}
+              sub={`${manage.program} (${COHORT_SHORT[manage.cohort]}) · ${manage.co}`}
+              badges={<span className={`bdg ${manage.status === 'locked' ? 'bdg-action' : manage.status === 'active' ? 'bdg-green' : 'bdg-grey'}`}>{statusLabel(manage)}</span>}
+              onClose={() => setPanel(null)}
+            />
+            <div className="pn-body">
+            <div className="info-grid" style={{ marginBottom: 18 }}>
+              <div className="info">
+                <div className="il">Username</div>
+                <div className="iv">{manage.username}</div>
               </div>
-              <div>
-                <span className="hint">Last active</span>
-                <br />
-                <b>{manage.lastActive || 'Never'}</b>
+              <div className="info">
+                <div className="il">Last active</div>
+                <div className="iv">{manage.lastActive || 'Never'}</div>
               </div>
-              <div>
-                <span className="hint">Devices signed in</span>
-                <br />
-                <b>{manage.sessions}</b>
+              <div className="info">
+                <div className="il">Devices signed in</div>
+                <div className="iv">{manage.sessions}</div>
               </div>
-              <div>
-                <span className="hint">Recent failed logins</span>
-                <br />
-                <b>{manage.failed}</b>
+              <div className="info">
+                <div className="il">Recent failed logins</div>
+                <div className="iv">{manage.failed}</div>
               </div>
             </div>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--muted)', margin: '2px 0 6px' }}>Contact</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+            <div className="sec-t">Contact</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
               <button className="btn-primary" onClick={() => router.push(`/staff/messages?to=${manage.studentId}`)}>
                 <Icon name="inbox" /> Message their app
               </button>
@@ -293,7 +292,7 @@ export function AccessTab({ access, reload }: { access: AccessData; reload: () =
                 <Icon name="phone" /> WhatsApp
               </button>
             </div>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--muted)', margin: '2px 0 6px' }}>Account</div>
+            <div className="sec-t">Account</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <button className="btn-primary" onClick={() => issue(manage)} disabled={busy}>
                 Send one-time code
@@ -319,9 +318,10 @@ export function AccessTab({ access, reload }: { access: AccessData; reload: () =
               minute: every session they have is ended. Nothing here ever shows or sets a password, and every action carries your name in the activity
               log.
             </div>
-          </div>
-        </div>
-      )}
+            </div>
+          </>
+        )}
+      </Panel>
     </>
   );
 }
@@ -337,13 +337,27 @@ function CodeBox({ c, onDone }: { c: CodeCard; onDone: () => void }) {
         : `BS With Leon · student app\nOpen: ${window.location.origin}/student/\nUsername: ${c.username}\nCode: ${c.code}\nThe code lasts a day.`;
     await copyText(text);
   };
+  // a dialog, not a card at the foot of the page: the code is shown once, so it must be seen
   return (
-    <div className="card">
-      <div className="card-h">
-        <h3>{c.kind === 'parent' ? `Parent code · ${c.label} of ${c.child}` : `Code for ${c.name || c.username}`}</h3>
-        <span className="hint">Shown once. Nothing can read it back.</span>
+    <Modal
+      open
+      title={c.kind === 'parent' ? `Parent code · ${c.label} of ${c.child}` : `Code for ${c.name || c.username}`}
+      onClose={onDone}
+      footer={
+        <>
+          <button className="btn-ghost" onClick={copy}>
+            Copy for WhatsApp
+          </button>
+          <button className="btn-primary" onClick={onDone}>
+            Done
+          </button>
+        </>
+      }
+    >
+      <div className="hint" style={{ marginBottom: 14 }}>
+        Shown once. Nothing can read it back.
       </div>
-      <div className="card-b">
+      <div>
         <div style={{ display: 'flex', gap: 26, alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div>
             <div className="hint">{c.kind === 'parent' ? 'They type this name' : 'Username'}</div>
@@ -360,16 +374,8 @@ function CodeBox({ c, onDone }: { c: CodeCard; onDone: () => void }) {
             ? "The parent opens the parent app, types the child's name and this code. It works on more than one phone."
             : 'Give both to the student in person. If it expires or is lost, issue another.'}
         </div>
-        <div style={{ marginTop: 14, display: 'flex', gap: 8 }}>
-          <button className="btn-ghost" onClick={copy}>
-            Copy for WhatsApp
-          </button>
-          <button className="btn-ghost" onClick={onDone}>
-            Done
-          </button>
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 
